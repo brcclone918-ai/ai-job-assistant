@@ -10,8 +10,13 @@
 打开 http://127.0.0.1:8000 即可使用。
 """
 
+import hashlib
 import json
 import os
+import re
+import secrets
+import sqlite3
+from datetime import datetime, timedelta
 from typing import List
 
 from dotenv import load_dotenv
@@ -66,6 +71,26 @@ class StyleSaveRequest(BaseModel):
 
 class StyleClearRequest(BaseModel):
     uid: str = ""
+
+
+class RegisterRequest(BaseModel):
+    username: str
+    password: str
+    email: str
+    anon_uid: str = ""
+
+
+class LoginRequest(BaseModel):
+    account: str
+    password: str
+
+
+class LogoutRequest(BaseModel):
+    token: str = ""
+
+
+class MeRequest(BaseModel):
+    token: str = ""
 
 
 # ---------- 提示词 ----------
@@ -131,6 +156,66 @@ STYLE_LEARN_SYSTEM = (
 )
 
 STYLE_PROFILES_FILE = os.path.join(BASE_DIR, "style_profiles.json")
+
+
+# ---------- 用户与登录（SQLite + 加盐哈希 + 内存会话） ----------
+DB_FILE = os.path.join(BASE_DIR, "users.db")
+SESSIONS: dict = {}  # token -> {"uid", "username", "expires_at"}
+
+
+def get_db() -> sqlite3.Connection:
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db() -> None:
+    conn = get_db()
+    conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS users (
+            uid TEXT PRIMARY KEY,
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            salt TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+        """
+    )
+    conn.commit()
+    conn.close()
+
+
+init_db()
+
+
+def hash_password(password: str, salt: str) -> str:
+    return hashlib.pbkdf2_hmac(
+        "sha256", password.encode("utf-8"), salt.encode("utf-8"), 120_000
+    ).hex()
+
+
+def create_session(uid: str, username: str) -> str:
+    token = secrets.token_hex(24)
+    SESSIONS[token] = {
+        "uid": uid,
+        "username": username,
+        "expires_at": datetime.now() + timedelta(days=7),
+    }
+    return token
+
+
+def current_user(token: str):
+    if not token:
+        return None
+    s = SESSIONS.get(token)
+    if not s:
+        return None
+    if s["expires_at"] < datetime.now():
+        SESSIONS.pop(token, None)
+        return None
+    return s
 
 
 # ---------- 工具函数 ----------
@@ -380,6 +465,89 @@ def optimize_resume(req: OptimizeRequest):
     data["style_learned"] = style_learned
     data["style_text"] = load_style(req.uid)
     return data
+
+
+# ---------- 登录/注册接口 ----------
+@app.post("/api/auth/register")
+def register(req: RegisterRequest):
+    username = (req.username or "").strip()
+    email = (req.email or "").strip().lower()
+    password = req.password or ""
+    if not re.fullmatch(r"[A-Za-z0-9_]{3,20}", username):
+        raise HTTPException(status_code=400, detail="用户名需为 3-20 位字母、数字或下划线")
+    if len(password) < 6:
+        raise HTTPException(status_code=400, detail="密码至少需要 6 位")
+    if not re.fullmatch(r"\S+@\S+\.\S+", email):
+        raise HTTPException(status_code=400, detail="邮箱格式不正确，请检查后重试")
+
+    conn = get_db()
+    try:
+        if conn.execute("SELECT 1 FROM users WHERE username = ?", (username,)).fetchone():
+            raise HTTPException(status_code=400, detail="该用户名已被注册，换一个试试")
+        if conn.execute("SELECT 1 FROM users WHERE email = ?", (email,)).fetchone():
+            raise HTTPException(status_code=400, detail="该邮箱已被注册，可以直接登录")
+        uid = "u_" + secrets.token_hex(8)
+        salt = secrets.token_hex(8)
+        conn.execute(
+            "INSERT INTO users (uid, username, email, password_hash, salt, created_at) VALUES (?,?,?,?,?,?)",
+            (
+                uid,
+                username,
+                email,
+                hash_password(password, salt),
+                salt,
+                datetime.now().isoformat(timespec="seconds"),
+            ),
+        )
+        conn.commit()
+    except HTTPException:
+        raise
+    finally:
+        conn.close()
+
+    # 若注册前以匿名账号学过文风，自动迁移到新账号
+    anon = (req.anon_uid or "").strip()
+    if anon and anon != uid and _valid_uid(anon):
+        style = load_style(anon)
+        if style:
+            save_style(uid, style)
+
+    token = create_session(uid, username)
+    return {"ok": True, "token": token, "uid": uid, "username": username}
+
+
+@app.post("/api/auth/login")
+def login(req: LoginRequest):
+    account = (req.account or "").strip()
+    password = req.password or ""
+    conn = get_db()
+    try:
+        row = conn.execute(
+            "SELECT uid, username, password_hash, salt FROM users WHERE username = ? OR email = ?",
+            (account, account.lower()),
+        ).fetchone()
+    finally:
+        conn.close()
+    if not row:
+        raise HTTPException(status_code=400, detail="该用户名或邮箱未注册")
+    if hash_password(password, row["salt"]) != row["password_hash"]:
+        raise HTTPException(status_code=400, detail="密码错误，请检查后重试")
+    token = create_session(row["uid"], row["username"])
+    return {"ok": True, "token": token, "uid": row["uid"], "username": row["username"]}
+
+
+@app.post("/api/auth/logout")
+def logout(req: LogoutRequest):
+    SESSIONS.pop(req.token, None)
+    return {"ok": True}
+
+
+@app.post("/api/auth/me")
+def me(req: MeRequest):
+    s = current_user(req.token)
+    if not s:
+        raise HTTPException(status_code=401, detail="登录已过期，请重新登录")
+    return {"ok": True, "uid": s["uid"], "username": s["username"]}
 
 
 # ---------- 文风接口（按账号） ----------

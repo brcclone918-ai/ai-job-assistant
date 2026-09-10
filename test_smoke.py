@@ -134,6 +134,69 @@ def main():
     post("/api/style/clear", {"uid": uid_a})
     print("A 清除后 enabled:", get_json("/api/style?uid=" + uid_a).get("enabled"))
 
+    print("\n== 9. 登录系统（注册/错误提示/登录/登出）==")
+    import time
+
+    uname = "smoke_" + str(int(time.time()))[-8:]
+    email = uname + "@test.com"
+
+    # 注册成功
+    r = post("/api/auth/register", {"username": uname, "password": "abc12345", "email": email, "anon_uid": uid_a})
+    print("注册成功:", r.get("ok"), "| uid:", (r.get("uid") or "")[:12], "| username:", r.get("username"))
+    token = r.get("token")
+
+    # 格式错误
+    try:
+        post("/api/auth/register", {"username": "a!", "password": "abc12345", "email": "x@x.com"})
+        print("用户名格式错误未被拦截 ✗")
+    except Exception as e:
+        print("用户名格式错误提示:", e)
+    try:
+        post("/api/auth/register", {"username": "okname1", "password": "abc12345", "email": "bad-email"})
+        print("邮箱格式错误未被拦截 ✗")
+    except Exception as e:
+        print("邮箱格式错误提示:", e)
+    try:
+        post("/api/auth/register", {"username": "okname2", "password": "123", "email": "ok2@x.com"})
+        print("密码过短未被拦截 ✗")
+    except Exception as e:
+        print("密码过短提示:", e)
+
+    # 重复注册
+    try:
+        post("/api/auth/register", {"username": uname, "password": "abc12345", "email": "other@x.com"})
+        print("重复用户名未被拦截 ✗")
+    except Exception as e:
+        print("重复用户名提示:", e)
+
+    # 登录错误原因
+    try:
+        post("/api/auth/login", {"account": "no_such_user_99", "password": "abc12345"})
+        print("未注册账号未被拦截 ✗")
+    except Exception as e:
+        print("未注册登录提示:", e)
+    try:
+        post("/api/auth/login", {"account": uname, "password": "wrongpass1"})
+        print("错误密码未被拦截 ✗")
+    except Exception as e:
+        print("错误密码提示:", e)
+
+    # 登录成功 + me + 登出
+    l = post("/api/auth/login", {"account": email, "password": "abc12345"})
+    print("邮箱登录成功:", l.get("ok"))
+    me = post("/api/auth/me", {"token": l.get("token")})
+    print("me 返回:", me.get("ok"), me.get("username"))
+    post("/api/auth/logout", {"token": l.get("token")})
+    try:
+        post("/api/auth/me", {"token": l.get("token")})
+        print("登出后 me 未被拦截 ✗")
+    except Exception as e:
+        print("登出后 me 提示:", e)
+
+    # 登录账号的文风（注册时已从匿名 uid_a 迁移）
+    s_logged = get_json("/api/style?uid=" + r.get("uid"))
+    print("注册账号文风已迁移 enabled:", s_logged.get("enabled"))
+
     print("\n全部通过 ✅")
 
 

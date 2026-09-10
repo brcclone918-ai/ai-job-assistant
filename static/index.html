@@ -73,6 +73,39 @@
   }
   .hidden { display: none !important; }
 
+  /* ---- 头部用户区 ---- */
+  .head-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+  .user-chip {
+    font-size: 13px; color: #1F2933; background: #fff; border: 1px solid #E5E9F0;
+    border-radius: 999px; padding: 6px 14px; display: inline-flex; align-items: center; gap: 8px;
+    box-shadow: 0 1px 3px rgba(31,41,51,.04);
+  }
+  .user-chip .logout { color: #2F7E9E; cursor: pointer; font-weight: 600; }
+
+  /* ---- 登录弹窗 ---- */
+  .modal { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modal-mask { position: absolute; inset: 0; background: rgba(31,41,51,.45); }
+  .modal-card {
+    position: relative; background: #fff; border-radius: 14px; width: 100%; max-width: 380px;
+    padding: 20px; box-shadow: 0 8px 30px rgba(31,41,51,.18); box-sizing: border-box;
+  }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .auth-tabs { display: flex; gap: 4px; background: #EDF1F6; border-radius: 9px; padding: 3px; }
+  .auth-tab {
+    border: none; background: transparent; padding: 7px 20px; border-radius: 7px;
+    font-size: 13.5px; font-weight: 600; color: #6B7280; cursor: pointer;
+  }
+  .auth-tab.active { background: #fff; color: #2F7E9E; box-shadow: 0 1px 3px rgba(31,41,51,.08); }
+  .modal-close { border: none; background: none; font-size: 22px; color: #9AA5B1; cursor: pointer; line-height: 1; padding: 0 4px; }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12.5px; color: #6B7280; margin-bottom: 5px; }
+  .field input {
+    width: 100%; border: 1px solid #D6DEE8; border-radius: 9px; padding: 10px 12px;
+    font-size: 14px; font-family: inherit; box-sizing: border-box; background: #FAFCFE;
+  }
+  .field input:focus { outline: none; border-color: #2F7E9E; background: #fff; }
+  #auth-modal .error { margin-top: 0; margin-bottom: 10px; }
+
   .loading { text-align: center; color: #6B7280; font-size: 14px; padding: 20px 0; }
   .loading::after {
     content: ""; display: inline-block; width: 14px; height: 14px; margin-left: 8px;
@@ -153,9 +186,12 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="logo">
-      <div class="logo-mark">Offer</div>
-      <h1>Offer 教练</h1>
+    <div class="head-row">
+      <div class="logo">
+        <div class="logo-mark">Offer</div>
+        <h1>Offer 教练</h1>
+      </div>
+      <div id="user-area"></div>
     </div>
     <p class="sub">AI 求职助手 · 粘贴一份 JD，得到匹配度分析、简历建议和模拟面试</p>
   </header>
@@ -297,6 +333,33 @@
 
   <footer>数据仅发送至 DeepSeek API 处理，用于生成分析结果 · 仅供学习与求职参考</footer>
 </div>
+
+<!-- ===== 登录 / 注册弹窗 ===== -->
+<div class="modal hidden" id="auth-modal">
+  <div class="modal-mask" id="auth-mask"></div>
+  <div class="modal-card">
+    <div class="modal-head">
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-mode="login">登录</button>
+        <button class="auth-tab" data-mode="register">注册</button>
+      </div>
+      <button class="modal-close" id="auth-close">×</button>
+    </div>
+    <div id="form-login">
+      <div class="field"><label>用户名或邮箱</label><input id="login-account" placeholder="输入用户名或邮箱"></div>
+      <div class="field"><label>密码</label><input id="login-password" type="password" placeholder="输入密码"></div>
+      <div class="error hidden" id="login-error"></div>
+      <button class="btn" id="btn-login-submit" style="width:100%;">登录</button>
+    </div>
+    <div id="form-register" class="hidden">
+      <div class="field"><label>用户名（3-20 位字母/数字/下划线）</label><input id="reg-username" placeholder="设置用户名"></div>
+      <div class="field"><label>密码（至少 6 位）</label><input id="reg-password" type="password" placeholder="设置密码"></div>
+      <div class="field"><label>邮箱</label><input id="reg-email" type="email" placeholder="用于登录和找回账号"></div>
+      <div class="error hidden" id="reg-error"></div>
+      <button class="btn" id="btn-reg-submit" style="width:100%;">注册并登录</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -315,6 +378,14 @@
     }
     return v;
   }
+
+  // ---- 登录状态：登录后使用账号 uid，未登录使用匿名 uid ----
+  var AUTH_KEY = "offercoach_token";
+  var currentUser = null;
+  var serverUid = "";
+
+  function getToken() { return localStorage.getItem(AUTH_KEY) || ""; }
+  function getEffectiveUid() { return currentUser ? serverUid : getUid(); }
 
   var SAMPLE_JD = "AI 应用开发工程师（全职，北京）\n岗位职责：\n1. 基于大模型 API 开发 AI 应用产品，负责 Prompt 工程与效果调优；\n2. 参与前后端全栈开发，独立完成功能从设计到上线；\n3. 对接业务需求，快速迭代 MVP。\n任职要求：\n1. 熟悉 Python 或 TypeScript；\n2. 有大模型 API 调用经验，了解 RAG、Agent 等常见架构；\n3. 有上线过小工具/网站/小程序的经验优先。";
   var SAMPLE_JD2 = "大模型应用工程师（全职，上海）\n岗位职责：\n1. 负责 Agent 与 RAG 系统的落地开发与效果评估；\n2. 与产品协作，把大模型能力转化为可用功能；\n3. 关注模型选型、成本与延迟优化。\n任职要求：\n1. Python 扎实，熟悉 LangChain/LlamaIndex 之一；\n2. 有向量数据库使用经验（Milvus/Chroma/pgvector 等）；\n3. 熟悉 Prompt 工程与评测方法，能独立做效果调优。";
@@ -398,7 +469,7 @@
     $("analyze-result").classList.add("hidden");
     $("analyze-loading").classList.remove("hidden");
     $("btn-analyze").disabled = true;
-    api("/api/analyze", { jd: jd, resume: $("resume-input").value.trim(), uid: getUid() })
+    api("/api/analyze", { jd: jd, resume: $("resume-input").value.trim(), uid: getEffectiveUid() })
       .then(renderAnalyze)
       .catch(function (e) { setError("analyze-error", e.message || "分析失败，请稍后重试"); })
       .finally(function () {
@@ -536,7 +607,7 @@
 
   function askInterview() {
     setIvLoading(true);
-    api("/api/interview", { jd: $("iv-jd").value.trim(), messages: ivMessages, uid: getUid() })
+    api("/api/interview", { jd: $("iv-jd").value.trim(), messages: ivMessages, uid: getEffectiveUid() })
       .then(function (d) {
         ivMessages.push({ role: "assistant", content: d.reply });
         addMsg("ai", d.reply);
@@ -666,7 +737,7 @@
     $("cmp-result").classList.add("hidden");
     $("cmp-loading").classList.remove("hidden");
     $("btn-cmp").disabled = true;
-    api("/api/compare", { jds: jds, resume: $("cmp-resume").value.trim(), uid: getUid() })
+    api("/api/compare", { jds: jds, resume: $("cmp-resume").value.trim(), uid: getEffectiveUid() })
       .then(renderCompare)
       .catch(function (e) { setError("cmp-error", e.message || "对比失败，请稍后重试"); })
       .finally(function () {
@@ -726,7 +797,7 @@
     $("opt-result").classList.add("hidden");
     $("opt-loading").classList.remove("hidden");
     $("btn-opt").disabled = true;
-    api("/api/optimize_resume", { resume: resume, direction: $("opt-direction").value.trim(), uid: getUid() })
+    api("/api/optimize_resume", { resume: resume, direction: $("opt-direction").value.trim(), uid: getEffectiveUid() })
       .then(renderOptimize)
       .catch(function (e) { setError("opt-error", e.message || "优化失败，请稍后重试"); })
       .finally(function () {
@@ -769,8 +840,8 @@
 
   // ================= Tab 5: 个人文风（自动学习） =================
   function refreshStyleUi() {
-    $("my-uid").textContent = getUid();
-    fetch("/api/style?uid=" + encodeURIComponent(getUid()))
+    $("my-uid").textContent = getEffectiveUid();
+    fetch("/api/style?uid=" + encodeURIComponent(getEffectiveUid()))
       .then(function (res) { return res.json(); })
       .then(function (d) {
         $("style-text").value = d.style_text || "";
@@ -787,26 +858,144 @@
   $("btn-style-save").addEventListener("click", function () {
     var t = $("style-text").value.trim();
     if (!t) { toast("文风指令不能为空"); return; }
-    api("/api/style/save", { uid: getUid(), style_text: t })
+    api("/api/style/save", { uid: getEffectiveUid(), style_text: t })
       .then(function () { toast("文风已保存"); refreshStyleUi(); })
       .catch(function (e) { toast("保存失败：" + (e.message || "未知错误")); });
   });
 
   $("btn-style-clear").addEventListener("click", function () {
     if (!confirm("确定清除当前账号的文风吗？清除后所有输出恢复默认风格。")) return;
-    api("/api/style/clear", { uid: getUid() })
+    api("/api/style/clear", { uid: getEffectiveUid() })
       .then(function () { $("style-text").value = ""; toast("文风已清除"); refreshStyleUi(); })
       .catch(function (e) { toast("清除失败：" + (e.message || "未知错误")); });
   });
 
   $("btn-uid-reset").addEventListener("click", function () {
-    if (!confirm("重新生成账号后，本浏览器之前的文风将不再关联。确定继续？")) return;
+    if (currentUser) return;
+    if (!confirm("重新生成匿名账号后，本浏览器之前的匿名文风将不再关联。确定继续？")) return;
     localStorage.removeItem("offercoach_uid");
     refreshStyleUi();
-    toast("已生成新账号");
+    toast("已生成新匿名账号");
   });
 
+  // ================= 登录 / 注册 =================
+  function renderUserArea() {
+    var area = $("user-area");
+    if (currentUser) {
+      area.innerHTML = '<div class="user-chip">你好，' + esc(currentUser.username)
+        + ' <span class="logout" id="btn-logout">退出</span></div>';
+      $("btn-logout").addEventListener("click", doLogout);
+    } else {
+      area.innerHTML = '<button class="btn ghost small" id="btn-auth-open">登录 / 注册</button>';
+      $("btn-auth-open").addEventListener("click", function () { openAuth("login"); });
+    }
+    var resetBtn = $("btn-uid-reset");
+    if (resetBtn) resetBtn.style.display = currentUser ? "none" : "";
+  }
+
+  function openAuth(mode) {
+    switchAuthTab(mode);
+    $("auth-modal").classList.remove("hidden");
+  }
+
+  function closeAuth() {
+    $("auth-modal").classList.add("hidden");
+    setError("login-error", "");
+    setError("reg-error", "");
+  }
+
+  function switchAuthTab(mode) {
+    document.querySelectorAll(".auth-tab").forEach(function (t) {
+      t.classList.toggle("active", t.getAttribute("data-mode") === mode);
+    });
+    $("form-login").classList.toggle("hidden", mode !== "login");
+    $("form-register").classList.toggle("hidden", mode !== "register");
+    setError("login-error", "");
+    setError("reg-error", "");
+  }
+
+  function afterAuthSuccess(d, msg) {
+    localStorage.setItem(AUTH_KEY, d.token);
+    currentUser = { uid: d.uid, username: d.username };
+    serverUid = d.uid;
+    closeAuth();
+    renderUserArea();
+    refreshStyleUi();
+    toast(msg);
+  }
+
+  function doLogin() {
+    var account = $("login-account").value.trim();
+    var password = $("login-password").value;
+    if (!account || !password) { setError("login-error", "请输入用户名/邮箱和密码"); return; }
+    setError("login-error", "");
+    $("btn-login-submit").disabled = true;
+    api("/api/auth/login", { account: account, password: password })
+      .then(function (d) { afterAuthSuccess(d, "登录成功，欢迎回来 " + d.username); })
+      .catch(function (e) { setError("login-error", e.message || "登录失败，请稍后重试"); })
+      .finally(function () { $("btn-login-submit").disabled = false; });
+  }
+
+  function doRegister() {
+    var username = $("reg-username").value.trim();
+    var password = $("reg-password").value;
+    var email = $("reg-email").value.trim();
+    if (!username || !password || !email) { setError("reg-error", "请填写完整的用户名、密码和邮箱"); return; }
+    setError("reg-error", "");
+    $("btn-reg-submit").disabled = true;
+    api("/api/auth/register", {
+      username: username,
+      password: password,
+      email: email,
+      anon_uid: getUid()
+    })
+      .then(function (d) { afterAuthSuccess(d, "注册成功，已登录"); })
+      .catch(function (e) { setError("reg-error", e.message || "注册失败，请稍后重试"); })
+      .finally(function () { $("btn-reg-submit").disabled = false; });
+  }
+
+  function doLogout() {
+    var t = getToken();
+    if (t) { api("/api/auth/logout", { token: t }).catch(function () { }); }
+    localStorage.removeItem(AUTH_KEY);
+    currentUser = null;
+    serverUid = "";
+    renderUserArea();
+    refreshStyleUi();
+    toast("已退出登录");
+  }
+
+  function restoreSession() {
+    var t = getToken();
+    if (!t) { renderUserArea(); return; }
+    api("/api/auth/me", { token: t })
+      .then(function (d) {
+        currentUser = { uid: d.uid, username: d.username };
+        serverUid = d.uid;
+        renderUserArea();
+        refreshStyleUi();
+      })
+      .catch(function () {
+        localStorage.removeItem(AUTH_KEY);
+        renderUserArea();
+      });
+  }
+
+  document.querySelectorAll(".auth-tab").forEach(function (t) {
+    t.addEventListener("click", function () { switchAuthTab(t.getAttribute("data-mode")); });
+  });
+  $("auth-close").addEventListener("click", closeAuth);
+  $("auth-mask").addEventListener("click", closeAuth);
+  $("btn-login-submit").addEventListener("click", doLogin);
+  $("btn-reg-submit").addEventListener("click", doRegister);
+  $("login-account").addEventListener("keydown", function (e) { if (e.key === "Enter") doLogin(); });
+  $("login-password").addEventListener("keydown", function (e) { if (e.key === "Enter") doLogin(); });
+  $("reg-username").addEventListener("keydown", function (e) { if (e.key === "Enter") doRegister(); });
+  $("reg-password").addEventListener("keydown", function (e) { if (e.key === "Enter") doRegister(); });
+  $("reg-email").addEventListener("keydown", function (e) { if (e.key === "Enter") doRegister(); });
+
   refreshStyleUi();
+  restoreSession();
 })();
 </script>
 </body>
