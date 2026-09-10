@@ -50,6 +50,11 @@ class CompareRequest(BaseModel):
     resume: str = ""
 
 
+class OptimizeRequest(BaseModel):
+    resume: str
+    direction: str = ""
+
+
 # ---------- 提示词 ----------
 ANALYZE_SYSTEM = (
     "你是资深 HR 兼业务面试官，帮助求职者分析一份岗位 JD。\n"
@@ -87,6 +92,19 @@ COMPARE_SYSTEM = (
     '"advice":"综合建议：哪个岗位更适合这位求职者、理由、下一步怎么准备"}\n'
     "要求：rows 里每个 values 数组的长度必须与用户提供的 JD 数量完全一致，"
     "按 JD 顺序一一对应；内容要具体，禁止空话套话。"
+)
+
+OPTIMIZE_SYSTEM = (
+    "你是资深 HR 与简历优化专家，根据用户给出的优化方向，帮用户优化简历。\n"
+    "必须只输出一个 JSON 对象，不要输出任何其他文字、注释或代码块标记。JSON 结构如下：\n"
+    '{"optimized":"优化后的完整简历文本（保留原简历的全部真实信息与结构，按优化方向重写表述、调整顺序、突出亮点）",'
+    '"changes":["改动点1：具体改了什么、为什么这么改","改动点2"],'
+    '"tips":["面试官视角提醒1","提醒2"]}\n'
+    "要求：\n"
+    "1. 优化后的简历必须严格基于原文，不得编造不存在的经历、项目、技能或数据；\n"
+    "2. 尊重用户提供的优化方向（如目标岗位、想突出的重点、篇幅、语言、模板风格等）；\n"
+    "3. changes 逐条说明改动及理由，具体可操作；\n"
+    "4. tips 给 2-3 条与投递或面试准备相关的实用提醒。"
 )
 
 
@@ -250,4 +268,24 @@ def compare(req: CompareRequest):
     data = parse_json_loose(reply)
     if data is None:
         data = {"summary": reply, "rows": [], "advice": ""}
+    return data
+
+
+@app.post("/api/optimize_resume")
+def optimize_resume(req: OptimizeRequest):
+    resume = (req.resume or "").strip()
+    if len(resume) < 20:
+        raise HTTPException(status_code=400, detail="简历内容太短，请粘贴完整简历或先上传简历文件")
+    direction = (req.direction or "").strip() or "（用户未填写，按通用求职优化：突出亮点、量化成果、精炼表述）"
+    user_content = f"我的优化方向：\n{direction}\n\n我的原始简历：\n{resume}"
+    reply = call_deepseek(
+        [
+            {"role": "system", "content": OPTIMIZE_SYSTEM},
+            {"role": "user", "content": user_content},
+        ],
+        temperature=0.4,
+    )
+    data = parse_json_loose(reply)
+    if data is None:
+        data = {"optimized": reply, "changes": [], "tips": []}
     return data

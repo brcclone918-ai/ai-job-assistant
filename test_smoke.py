@@ -85,6 +85,16 @@ def main():
         print("第一行维度:", r0.get("dimension"), "| 值数量:", len(r0.get("values") or []))
     print("advice:", (c.get("advice") or "")[:60].replace("\n", " "))
 
+    print("\n== 7. /api/optimize_resume（简历优化）==")
+    o = post("/api/optimize_resume", {
+        "resume": "白洳丞\n求职意向：AI 应用开发工程师\n技能：Python、FastAPI、大模型 API 调用、微信小程序上线经验\n项目：开发过 AI 求职助手，支持 JD 分析与模拟面试，已部署上线。",
+        "direction": "目标岗位是 AI 应用开发工程师，突出上线作品与量化成果，控制在 1 页",
+    })
+    print("optimized 长度:", len(o.get("optimized") or ""))
+    print("optimized 开头:", (o.get("optimized") or "")[:60].replace("\n", " "))
+    print("changes 条数:", len(o.get("changes") or []))
+    print("tips 条数:", len(o.get("tips") or []))
+
     print("\n全部通过 ✅")
 
 

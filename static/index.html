@@ -164,6 +164,7 @@
     <button class="tab active" data-tab="analyze">① JD 分析</button>
     <button class="tab" data-tab="interview">② 模拟面试</button>
     <button class="tab" data-tab="compare">③ 多 JD 对比</button>
+    <button class="tab" data-tab="optimize">④ 简历优化</button>
   </div>
 
   <!-- ===== Tab 1: JD 分析 ===== -->
@@ -246,6 +247,31 @@
     </div>
   </div>
 
+  <!-- ===== Tab 4: 简历优化 ===== -->
+  <div id="tab-optimize" class="hidden">
+    <div class="card">
+      <div class="card-title">我的简历</div>
+      <div class="card-desc">粘贴或上传你的简历，AI 会按你给的优化方向重写</div>
+      <textarea id="opt-resume" placeholder="粘贴你的简历全文…"></textarea>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn ghost small" id="btn-upload-opt-resume">上传简历文件（PDF/TXT）</button>
+        <input type="file" id="file-opt-resume" accept=".pdf,.txt" class="hidden">
+        <span class="hint" style="margin-top:0;">上传后自动填入上方文本框</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">优化方向（你来提）</div>
+      <div class="card-desc">想怎么优化就怎么写：目标岗位、要突出的重点、篇幅、语言、风格等</div>
+      <textarea id="opt-direction" placeholder="例如：目标岗位是 AI 应用开发工程师，请把项目经历放前面，突出上线作品和量化成果（用户量、节省工时等），控制在 1 页内，语气更有行动力。" style="min-height:100px;"></textarea>
+      <div class="btn-row">
+        <button class="btn" id="btn-opt">开始优化</button>
+      </div>
+      <div id="opt-loading" class="loading hidden">AI 正在优化简历，请稍候…</div>
+      <div id="opt-error" class="error hidden"></div>
+      <div id="opt-result" class="result-block"></div>
+    </div>
+  </div>
+
   <footer>数据仅发送至 DeepSeek API 处理，用于生成分析结果 · 仅供学习与求职参考</footer>
 </div>
 <div class="toast" id="toast"></div>
@@ -315,7 +341,7 @@
       document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
       tab.classList.add("active");
       var name = tab.getAttribute("data-tab");
-      ["analyze", "interview", "compare"].forEach(function (n) {
+      ["analyze", "interview", "compare", "optimize"].forEach(function (n) {
         $("tab-" + n).classList.toggle("hidden", n !== name);
       });
     });
@@ -454,6 +480,7 @@
   }
   bindResumeUpload("btn-upload-resume", "file-resume", "resume-input");
   bindResumeUpload("btn-upload-cmp-resume", "file-cmp-resume", "cmp-resume");
+  bindResumeUpload("btn-upload-opt-resume", "file-opt-resume", "opt-resume");
 
   // ================= Tab 2: 模拟面试 =================
   function addMsg(role, text) {
@@ -655,6 +682,50 @@
     }
     if (d.advice) lines.push("", "## 投递建议", d.advice);
     return lines.join("\n");
+  }
+
+  // ================= Tab 4: 简历优化 =================
+  $("btn-opt").addEventListener("click", function () {
+    var resume = $("opt-resume").value.trim();
+    if (resume.length < 20) { setError("opt-error", "简历太短啦，请粘贴完整简历或先上传简历文件"); return; }
+    setError("opt-error", "");
+    $("opt-result").classList.add("hidden");
+    $("opt-loading").classList.remove("hidden");
+    $("btn-opt").disabled = true;
+    api("/api/optimize_resume", { resume: resume, direction: $("opt-direction").value.trim() })
+      .then(renderOptimize)
+      .catch(function (e) { setError("opt-error", e.message || "优化失败，请稍后重试"); })
+      .finally(function () {
+        $("opt-loading").classList.add("hidden");
+        $("btn-opt").disabled = false;
+      });
+  });
+
+  function renderOptimize(d) {
+    var el = $("opt-result");
+    var html = '<div class="card">';
+
+    html += '<div class="sect-title">优化后的简历</div>'
+      + '<div class="summary-text" style="white-space:pre-wrap;background:#F6F9FB;border:1px solid #E5E9F0;border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.75;">'
+      + esc(d.optimized || "（未能生成）") + '</div>';
+
+    if (d.changes && d.changes.length) {
+      html += '<div class="sect"><div class="sect-title">改动说明</div><ul class="plain">';
+      d.changes.forEach(function (x) { html += '<li>' + esc(x) + '</li>'; });
+      html += '</ul></div>';
+    }
+    if (d.tips && d.tips.length) {
+      html += '<div class="sect"><div class="sect-title">投递与面试提醒</div><div class="chips">';
+      d.tips.forEach(function (x) { html += '<span class="chip">' + esc(x) + '</span>'; });
+      html += '</div></div>';
+    }
+
+    html += '<div class="btn-row"><button class="btn ghost small" id="btn-opt-copy">复制优化后的简历</button></div></div>';
+    el.innerHTML = html;
+    el.classList.remove("hidden");
+    $("btn-opt-copy").addEventListener("click", function () {
+      copyText(d.optimized || "");
+    });
   }
 })();
 </script>
