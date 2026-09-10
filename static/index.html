@@ -8,84 +8,114 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, Arial, sans-serif;
-    background: #F5F8FA;
-    color: #1F2933;
-    min-height: 100vh;
+    background: #F4F7FA; color: #1F2933; -webkit-font-smoothing: antialiased;
   }
-  .wrap { max-width: 760px; margin: 0 auto; padding: 32px 16px 56px; }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 36px 16px 60px; }
 
-  header { text-align: center; margin-bottom: 24px; }
-  header h1 { font-size: 26px; font-weight: 700; color: #1F2933; }
-  header h1 span { color: #2F7E9E; }
-  header p { margin-top: 6px; font-size: 14px; color: #6B7280; }
+  /* ---- 头部 ---- */
+  header { text-align: center; margin-bottom: 26px; }
+  .logo {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: #fff; border: 1px solid #E5E9F0; border-radius: 14px;
+    padding: 8px 18px; box-shadow: 0 1px 3px rgba(31,41,51,.05);
+  }
+  .logo-mark {
+    width: 34px; height: 34px; border-radius: 9px; background: #2F7E9E;
+    color: #fff; font-weight: 700; font-size: 15px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo h1 { font-size: 20px; font-weight: 700; color: #1F2933; }
+  header .sub { margin-top: 10px; font-size: 13.5px; color: #6B7280; }
 
-  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  /* ---- 标签页 ---- */
+  .tabs {
+    display: flex; gap: 6px; background: #E9EEF4; border-radius: 12px; padding: 5px;
+    margin-bottom: 18px;
+  }
   .tab {
-    flex: 1; padding: 12px 0; text-align: center; font-size: 15px; font-weight: 600;
-    background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; cursor: pointer;
-    color: #6B7280; transition: all .15s;
+    flex: 1; padding: 10px 0; text-align: center; font-size: 14px; font-weight: 600;
+    border-radius: 9px; cursor: pointer; color: #6B7280; transition: all .15s;
+    border: none; background: transparent;
   }
-  .tab.active { background: #2F7E9E; border-color: #2F7E9E; color: #fff; }
+  .tab.active { background: #fff; color: #2F7E9E; box-shadow: 0 1px 3px rgba(31,41,51,.08); }
 
+  /* ---- 卡片 ---- */
   .card {
-    background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px;
-    padding: 20px; margin-bottom: 16px;
+    background: #fff; border: 1px solid #E5E9F0; border-radius: 14px;
+    padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(31,41,51,.04);
   }
-  .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+  .card-title { font-size: 14.5px; font-weight: 600; margin-bottom: 4px; }
+  .card-desc { font-size: 12.5px; color: #6B7280; margin-bottom: 12px; }
 
   textarea {
-    width: 100%; border: 1px solid #D3DCE6; border-radius: 8px; padding: 12px;
-    font-size: 14px; font-family: inherit; line-height: 1.6; color: #1F2933;
-    resize: vertical; background: #FAFCFD; min-height: 130px;
+    width: 100%; border: 1px solid #D6DEE8; border-radius: 10px; padding: 12px;
+    font-size: 14px; font-family: inherit; line-height: 1.65; color: #1F2933;
+    resize: vertical; background: #FAFCFE; min-height: 130px; transition: border-color .15s, background .15s;
   }
-  textarea:focus { outline: none; border-color: #2F7E9E; background: #fff; }
-
+  textarea:focus { outline: none; border-color: #2F7E9E; background: #fff; box-shadow: 0 0 0 3px rgba(47,126,158,.12); }
   .hint { font-size: 12px; color: #9AA5B1; margin-top: 6px; }
 
+  /* ---- 按钮 ---- */
   .btn {
-    display: inline-block; border: none; border-radius: 8px; padding: 10px 22px;
+    display: inline-block; border: none; border-radius: 9px; padding: 10px 20px;
     font-size: 14px; font-weight: 600; cursor: pointer; background: #2F7E9E; color: #fff;
-    transition: opacity .15s;
+    transition: all .15s;
   }
-  .btn:hover { opacity: .9; }
+  .btn:hover { background: #276B88; }
   .btn:disabled { opacity: .5; cursor: not-allowed; }
   .btn.ghost { background: #fff; color: #2F7E9E; border: 1px solid #2F7E9E; }
-  .btn.small { padding: 6px 12px; font-size: 12px; }
-  .btn-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .btn.ghost:hover { background: #EAF3F8; }
+  .btn.small { padding: 6px 12px; font-size: 12.5px; border-radius: 7px; }
+  .btn-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+  .link-btn {
+    background: none; border: none; color: #2F7E9E; font-size: 13px; cursor: pointer; padding: 4px;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .hidden { display: none !important; }
 
-  .toggle-link { font-size: 13px; color: #2F7E9E; cursor: pointer; margin-top: 8px; display: inline-block; }
-  .hidden { display: none; }
-
-  .loading { text-align: center; color: #6B7280; font-size: 14px; padding: 18px 0; }
+  .loading { text-align: center; color: #6B7280; font-size: 14px; padding: 20px 0; }
   .loading::after {
     content: ""; display: inline-block; width: 14px; height: 14px; margin-left: 8px;
-    border: 2px solid #D3DCE6; border-top-color: #2F7E9E; border-radius: 50%;
+    border: 2px solid #D6DEE8; border-top-color: #2F7E9E; border-radius: 50%;
     animation: spin .8s linear infinite; vertical-align: -2px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .result-block { margin-top: 16px; }
-  .score-row { display: flex; align-items: center; gap: 12px; margin: 10px 0 6px; }
-  .score-num { font-size: 22px; font-weight: 700; min-width: 52px; }
-  .score-bar { flex: 1; height: 10px; background: #EDF2F7; border-radius: 5px; overflow: hidden; }
-  .score-fill { height: 100%; border-radius: 5px; transition: width .5s; }
-  .score-tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; color: #fff; }
+  /* ---- 分析结果 ---- */
+  .result-block { margin-top: 6px; }
+  .score-row { display: flex; align-items: center; gap: 12px; margin: 12px 0 4px; }
+  .score-num { font-size: 26px; font-weight: 800; min-width: 56px; letter-spacing: -.5px; }
+  .score-bar { flex: 1; height: 10px; background: #EDF1F6; border-radius: 5px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 5px; transition: width .6s ease; }
+  .score-tag { font-size: 12px; padding: 3px 10px; border-radius: 999px; color: #fff; font-weight: 600; }
 
-  .sect-title { font-size: 14px; font-weight: 600; margin: 14px 0 8px; }
+  .sect { margin-top: 18px; }
+  .sect-title {
+    display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 700; color: #1F2933; margin-bottom: 9px;
+  }
+  .sect-title::before { content: ""; width: 4px; height: 14px; border-radius: 2px; background: #2F7E9E; }
   ul.plain { list-style: none; }
   ul.plain li {
-    font-size: 14px; line-height: 1.65; padding: 7px 10px; background: #F7FAFC;
+    font-size: 13.5px; line-height: 1.65; padding: 8px 11px; background: #F6F9FB;
     border-radius: 8px; margin-bottom: 6px; border-left: 3px solid #2F7E9E;
   }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip { font-size: 13px; background: #EAF3F8; color: #2F7E9E; border-radius: 999px; padding: 5px 12px; }
+  .chip { font-size: 12.5px; background: #EAF3F8; color: #2F7E9E; border-radius: 999px; padding: 5px 12px; font-weight: 500; }
+  .summary-text { font-size: 14px; line-height: 1.75; color: #33414F; }
 
-  /* 面试区 */
+  /* ---- 对比表格 ---- */
+  .cmp-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; margin-top: 4px; }
+  .cmp-table th, .cmp-table td { padding: 10px 12px; border-bottom: 1px solid #EDF1F6; vertical-align: top; line-height: 1.6; }
+  .cmp-table th { background: #F6F9FB; color: #33414F; font-weight: 600; text-align: left; white-space: nowrap; width: 110px; }
+  .cmp-table tr:last-child th, .cmp-table tr:last-child td { border-bottom: none; }
+  .cmp-col-title { font-weight: 600; color: #2F7E9E; font-size: 12px; }
+
+  /* ---- 面试区 ---- */
   .chat {
-    border: 1px solid #E2E8F0; border-radius: 12px; background: #FAFCFD;
-    padding: 14px; max-height: 420px; overflow-y: auto; min-height: 120px;
+    border: 1px solid #E5E9F0; border-radius: 12px; background: #FAFCFE;
+    padding: 16px; max-height: 440px; overflow-y: auto; min-height: 140px;
   }
-  .msg { display: flex; margin-bottom: 12px; }
+  .msg { display: flex; margin-bottom: 14px; }
   .msg .avatar {
     flex: 0 0 30px; height: 30px; border-radius: 50%; display: flex; align-items: center;
     justify-content: center; font-size: 13px; font-weight: 700; color: #fff; margin-right: 10px;
@@ -93,45 +123,62 @@
   .msg.ai .avatar { background: #2F7E9E; }
   .msg.user .avatar { background: #9AA5B1; }
   .msg .bubble {
-    max-width: 82%; padding: 10px 13px; border-radius: 10px; font-size: 14px; line-height: 1.65;
+    max-width: 84%; padding: 11px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.7;
     white-space: pre-wrap; word-break: break-word;
   }
-  .msg.ai .bubble { background: #fff; border: 1px solid #E2E8F0; border-top-left-radius: 2px; }
+  .msg.ai .bubble { background: #fff; border: 1px solid #E5E9F0; border-top-left-radius: 3px; }
   .msg.user { justify-content: flex-end; }
   .msg.user .avatar { order: 2; margin-right: 0; margin-left: 10px; }
-  .msg.user .bubble { background: #2F7E9E; color: #fff; border-top-right-radius: 2px; }
+  .msg.user .bubble { background: #2F7E9E; color: #fff; border-top-right-radius: 3px; }
 
   .input-row { display: flex; gap: 8px; margin-top: 12px; }
   .input-row textarea { min-height: 0; height: 56px; flex: 1; }
 
-  .error { background: #FDF0EF; border: 1px solid #F5C6C4; color: #B23B3B; font-size: 13px; border-radius: 8px; padding: 10px 12px; margin-top: 12px; }
-  footer { text-align: center; font-size: 12px; color: #9AA5B1; margin-top: 28px; line-height: 1.7; }
+  .error { background: #FDF1EF; border: 1px solid #F3CFCB; color: #B23B3B; font-size: 13px; border-radius: 9px; padding: 11px 13px; margin-top: 12px; line-height: 1.6; }
+  .toast {
+    position: fixed; left: 50%; bottom: 40px; transform: translateX(-50%);
+    background: #1F2933; color: #fff; font-size: 13px; padding: 9px 18px; border-radius: 999px;
+    opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 99;
+  }
+  .toast.show { opacity: 1; }
+  footer { text-align: center; font-size: 12px; color: #9AA5B1; margin-top: 30px; line-height: 1.8; }
+
+  @media (max-width: 560px) {
+    .wrap { padding: 22px 12px 48px; }
+    .cmp-table th { width: 84px; padding: 8px 10px; }
+    .cmp-table td { padding: 8px 10px; }
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>Offer <span>教练</span></h1>
-    <p>AI 求职助手 · 粘贴一份 JD，得到匹配度分析、简历建议和模拟面试</p>
+    <div class="logo">
+      <div class="logo-mark">Offer</div>
+      <h1>Offer 教练</h1>
+    </div>
+    <p class="sub">AI 求职助手 · 粘贴一份 JD，得到匹配度分析、简历建议和模拟面试</p>
   </header>
 
   <div class="tabs">
-    <div class="tab active" data-tab="analyze">① JD 分析</div>
-    <div class="tab" data-tab="interview">② 模拟面试</div>
+    <button class="tab active" data-tab="analyze">① JD 分析</button>
+    <button class="tab" data-tab="interview">② 模拟面试</button>
+    <button class="tab" data-tab="compare">③ 多 JD 对比</button>
   </div>
 
   <!-- ===== Tab 1: JD 分析 ===== -->
   <div id="tab-analyze">
     <div class="card">
-      <h2>粘贴职位描述（JD）</h2>
+      <div class="card-title">粘贴职位描述（JD）</div>
+      <div class="card-desc">把招聘 JD 完整粘贴到这里，AI 会拆解岗位要求并给出匹配分析和简历建议</div>
       <textarea id="jd-input" placeholder="把招聘 JD 完整粘贴到这里…"></textarea>
       <div class="hint">至少 20 个字符，越完整分析越准</div>
       <div class="btn-row">
         <button class="btn" id="btn-fill-sample">填入示例 JD</button>
-        <button class="btn ghost" id="btn-toggle-resume">+ 附上我的简历（可选）</button>
+        <button class="link-btn" id="btn-toggle-resume">+ 附上我的简历（可选）</button>
       </div>
       <div id="resume-wrap" class="hidden" style="margin-top:12px;">
-        <textarea id="resume-input" placeholder="粘贴你的简历要点（可选）…" style="min-height:90px;"></textarea>
+        <textarea id="resume-input" placeholder="粘贴你的简历要点（可选），分析会更贴合你的情况…" style="min-height:90px;"></textarea>
       </div>
       <div class="btn-row">
         <button class="btn" id="btn-analyze">开始分析</button>
@@ -145,7 +192,8 @@
   <!-- ===== Tab 2: 模拟面试 ===== -->
   <div id="tab-interview" class="hidden">
     <div class="card">
-      <h2>目标 JD</h2>
+      <div class="card-title">目标 JD</div>
+      <div class="card-desc">AI 面试官会围绕这份 JD 出题，最多 4 轮，结束后给出整体评价</div>
       <textarea id="iv-jd" placeholder="粘贴这份模拟面试对应的 JD…"></textarea>
       <div class="btn-row">
         <button class="btn" id="btn-iv-start">开始面试</button>
@@ -155,6 +203,7 @@
     <div class="card hidden" id="iv-chat-card">
       <div class="chat" id="iv-chat"></div>
       <div class="input-row">
+        <button class="btn ghost small" id="btn-iv-voice" style="white-space:nowrap;">语音输入</button>
         <textarea id="iv-answer" placeholder="输入你的回答…（Enter 发送）"></textarea>
         <button class="btn" id="btn-iv-send">发送</button>
       </div>
@@ -165,8 +214,31 @@
     </div>
   </div>
 
+  <!-- ===== Tab 3: 多 JD 对比 ===== -->
+  <div id="tab-compare" class="hidden">
+    <div class="card">
+      <div class="card-title">粘贴 2-4 份 JD 进行对比</div>
+      <div class="card-desc">同时分析多个岗位的定位、要求、考察侧重和成长线索，帮你做投递决策</div>
+      <div id="cmp-inputs"></div>
+      <div class="btn-row">
+        <button class="btn ghost small" id="btn-cmp-add">+ 添加一份 JD（最多 4 份）</button>
+        <button class="link-btn" id="btn-toggle-cmp-resume">+ 附上我的简历（可选）</button>
+      </div>
+      <div id="cmp-resume-wrap" class="hidden" style="margin-top:12px;">
+        <textarea id="cmp-resume" placeholder="粘贴你的简历要点（可选），对比建议会更贴合你的情况…" style="min-height:90px;"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="btn-cmp">开始对比</button>
+      </div>
+      <div id="cmp-loading" class="loading hidden">AI 正在对比分析，请稍候…</div>
+      <div id="cmp-error" class="error hidden"></div>
+      <div id="cmp-result" class="result-block"></div>
+    </div>
+  </div>
+
   <footer>数据仅发送至 DeepSeek API 处理，用于生成分析结果 · 仅供学习与求职参考</footer>
 </div>
+<div class="toast" id="toast"></div>
 
 <script>
 (function () {
@@ -175,11 +247,13 @@
   var $ = function (id) { return document.getElementById(id); };
 
   var SAMPLE_JD = "AI 应用开发工程师（全职，北京）\n岗位职责：\n1. 基于大模型 API 开发 AI 应用产品，负责 Prompt 工程与效果调优；\n2. 参与前后端全栈开发，独立完成功能从设计到上线；\n3. 对接业务需求，快速迭代 MVP。\n任职要求：\n1. 熟悉 Python 或 TypeScript；\n2. 有大模型 API 调用经验，了解 RAG、Agent 等常见架构；\n3. 有上线过小工具/网站/小程序的经验优先。";
+  var SAMPLE_JD2 = "大模型应用工程师（全职，上海）\n岗位职责：\n1. 负责 Agent 与 RAG 系统的落地开发与效果评估；\n2. 与产品协作，把大模型能力转化为可用功能；\n3. 关注模型选型、成本与延迟优化。\n任职要求：\n1. Python 扎实，熟悉 LangChain/LlamaIndex 之一；\n2. 有向量数据库使用经验（Milvus/Chroma/pgvector 等）；\n3. 熟悉 Prompt 工程与评测方法，能独立做效果调优。";
 
-  var ivMessages = [];   // 面试历史 [{role, content}]
+  var ivMessages = [];
   var interviewStarted = false;
+  var cmpCount = 2;
 
-  // ---- 工具 ----
+  // ---- 基础工具 ----
   function api(path, body) {
     return fetch(path, {
       method: "POST",
@@ -188,24 +262,41 @@
     }).then(function (res) {
       return res.json().then(function (data) {
         if (!res.ok) {
-          var detail = (data && data.detail) ? data.detail : "请求失败";
-          throw new Error(detail);
+          throw new Error((data && data.detail) ? data.detail : "请求失败");
         }
         return data;
       });
     });
   }
 
-  function show(el) { el.classList.remove("hidden"); }
-  function hide(el) { el.classList.add("hidden"); }
-
-  function setError(id, msg) {
-    var el = $(id);
-    if (msg) { el.textContent = msg; show(el); } else { hide(el); }
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
-  function esc(s) {
-    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.classList.remove("show"); }, 2200);
+  }
+
+  function copyText(text) {
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); toast("已复制到剪贴板"); }
+      catch (e) { toast("复制失败，请手动选择复制"); }
+      document.body.removeChild(ta);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast("已复制到剪贴板"); }, fallback);
+    } else { fallback(); }
   }
 
   // ---- Tab 切换 ----
@@ -214,45 +305,53 @@
       document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
       tab.classList.add("active");
       var name = tab.getAttribute("data-tab");
-      hide($("tab-analyze"));
-      hide($("tab-interview"));
-      show(name === "analyze" ? $("tab-analyze") : $("tab-interview"));
+      ["analyze", "interview", "compare"].forEach(function (n) {
+        $("tab-" + n).classList.toggle("hidden", n !== name);
+      });
     });
   });
 
-  // ---- Tab 1 ----
+  // ================= Tab 1: JD 分析 =================
   $("btn-fill-sample").addEventListener("click", function () { $("jd-input").value = SAMPLE_JD; });
 
   $("btn-toggle-resume").addEventListener("click", function () {
     var w = $("resume-wrap");
-    var btn = $("btn-toggle-resume");
-    if (w.classList.contains("hidden")) { show(w); btn.textContent = "- 收起简历"; }
-    else { hide(w); btn.textContent = "+ 附上我的简历（可选）"; }
+    var b = $("btn-toggle-resume");
+    if (w.classList.contains("hidden")) { w.classList.remove("hidden"); b.textContent = "- 收起简历"; }
+    else { w.classList.add("hidden"); b.textContent = "+ 附上我的简历（可选）"; }
   });
 
   $("btn-analyze").addEventListener("click", function () {
     var jd = $("jd-input").value.trim();
-    if (jd.length < 20) { setError("analyze-error", "JD 太短啦，先粘贴完整职位描述（或用示例 JD）"); return; }
+    if (jd.length < 20) { setError("analyze-error", "JD 太短啦，先粘贴完整职位描述（或点「填入示例 JD」）"); return; }
     setError("analyze-error", "");
-    hide($("analyze-result"));
-    show($("analyze-loading"));
-    var btn = $("btn-analyze");
-    btn.disabled = true;
+    $("analyze-result").classList.add("hidden");
+    $("analyze-loading").classList.remove("hidden");
+    $("btn-analyze").disabled = true;
     api("/api/analyze", { jd: jd, resume: $("resume-input").value.trim() })
       .then(renderAnalyze)
       .catch(function (e) { setError("analyze-error", e.message || "分析失败，请稍后重试"); })
-      .finally(function () { hide($("analyze-loading")); btn.disabled = false; });
+      .finally(function () {
+        $("analyze-loading").classList.add("hidden");
+        $("btn-analyze").disabled = false;
+      });
   });
+
+  function setError(id, msg) {
+    var el = $(id);
+    if (msg) { el.textContent = msg; el.classList.remove("hidden"); }
+    else { el.classList.add("hidden"); }
+  }
 
   function renderAnalyze(d) {
     var el = $("analyze-result");
     var html = '<div class="card">';
 
-    html += '<div class="sect-title">总体判断</div><div style="font-size:14px;line-height:1.7;">' + esc(d.summary || "") + '</div>';
+    html += '<div class="sect-title">总体判断</div><div class="summary-text">' + esc(d.summary || "") + '</div>';
 
     var score = parseInt(d.match_score, 10);
     if (!isNaN(score)) {
-      var color = score >= 70 ? "#52C41A" : (score >= 50 ? "#FAAD14" : "#EA6668");
+      var color = score >= 70 ? "#2E9E5B" : (score >= 50 ? "#D98E04" : "#D64545");
       var tag = score >= 70 ? "匹配度不错" : (score >= 50 ? "需要补强" : "匹配有难度");
       html += '<div class="score-row">'
         + '<div class="score-num" style="color:' + color + ';">' + score + '</div>'
@@ -262,31 +361,60 @@
     }
 
     if (d.must_have && d.must_have.length) {
-      html += '<div class="sect-title">硬性要求</div><ul class="plain">';
+      html += '<div class="sect"><div class="sect-title">硬性要求</div><ul class="plain">';
       d.must_have.forEach(function (x) { html += '<li>' + esc(x) + '</li>'; });
-      html += '</ul>';
+      html += '</ul></div>';
     }
     if (d.good_have && d.good_have.length) {
-      html += '<div class="sect-title">加分项</div><ul class="plain">';
+      html += '<div class="sect"><div class="sect-title">加分项</div><ul class="plain">';
       d.good_have.forEach(function (x) { html += '<li>' + esc(x) + '</li>'; });
-      html += '</ul>';
+      html += '</ul></div>';
     }
     if (d.resume_advice && d.resume_advice.length) {
-      html += '<div class="sect-title">简历修改建议</div><ul class="plain">';
+      html += '<div class="sect"><div class="sect-title">简历修改建议</div><ul class="plain">';
       d.resume_advice.forEach(function (x) { html += '<li>' + esc(x) + '</li>'; });
-      html += '</ul>';
+      html += '</ul></div>';
     }
     if (d.interview_focus && d.interview_focus.length) {
-      html += '<div class="sect-title">面试可能考察</div><div class="chips">';
+      html += '<div class="sect"><div class="sect-title">面试可能考察</div><div class="chips">';
       d.interview_focus.forEach(function (x) { html += '<span class="chip">' + esc(x) + '</span>'; });
-      html += '</div>';
+      html += '</div></div>';
     }
-    html += '</div>';
+
+    html += '<div class="btn-row">'
+      + '<button class="btn ghost small" id="btn-copy-md">复制为 Markdown</button>'
+      + '<button class="btn ghost small" id="btn-to-interview">用这份 JD 去模拟面试</button>'
+      + '</div></div>';
     el.innerHTML = html;
-    show(el);
+    el.classList.remove("hidden");
+
+    $("btn-copy-md").addEventListener("click", function () { copyText(buildAnalyzeMd(d)); });
+    $("btn-to-interview").addEventListener("click", function () {
+      $("iv-jd").value = $("jd-input").value.trim();
+      document.querySelector('.tab[data-tab="interview"]').click();
+    });
   }
 
-  // ---- Tab 2: 模拟面试 ----
+  function buildAnalyzeMd(d) {
+    var lines = ["# JD 分析结果", "", "**总体判断**：" + (d.summary || "")];
+    var s = parseInt(d.match_score, 10);
+    if (!isNaN(s)) lines.push("**匹配度**：" + s + " / 100");
+    var sections = [
+      ["硬性要求", d.must_have],
+      ["加分项", d.good_have],
+      ["简历修改建议", d.resume_advice],
+      ["面试可能考察", d.interview_focus]
+    ];
+    sections.forEach(function (sec) {
+      if (sec[1] && sec[1].length) {
+        lines.push("", "## " + sec[0]);
+        sec[1].forEach(function (x) { lines.push("- " + x); });
+      }
+    });
+    return lines.join("\n");
+  }
+
+  // ================= Tab 2: 模拟面试 =================
   function addMsg(role, text) {
     var chat = $("iv-chat");
     var m = document.createElement("div");
@@ -298,7 +426,7 @@
   }
 
   function setIvLoading(on) {
-    if (on) show($("iv-loading")); else hide($("iv-loading"));
+    $("iv-loading").classList.toggle("hidden", !on);
     $("btn-iv-send").disabled = on;
     $("btn-iv-end").disabled = on;
     $("btn-iv-start").disabled = on;
@@ -319,11 +447,11 @@
 
   $("btn-iv-start").addEventListener("click", function () {
     var jd = $("iv-jd").value.trim();
-    if (jd.length < 20) { alert("请先粘贴目标 JD（或用 Tab① 的示例 JD）"); return; }
+    if (jd.length < 20) { alert("请先粘贴目标 JD（或在分析页点「用这份 JD 去模拟面试」）"); return; }
     ivMessages = [];
     $("iv-chat").innerHTML = "";
     $("iv-answer").value = "";
-    show($("iv-chat-card"));
+    $("iv-chat-card").classList.remove("hidden");
     interviewStarted = true;
     askInterview();
   });
@@ -355,8 +483,138 @@
     interviewStarted = false;
     $("iv-chat").innerHTML = "";
     $("iv-answer").value = "";
-    hide($("iv-chat-card"));
+    $("iv-chat-card").classList.add("hidden");
   });
+
+  // 语音输入（浏览器不支持时自动隐藏）
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SR) {
+    var rec = new SR();
+    rec.lang = "zh-CN";
+    rec.interimResults = false;
+    rec.continuous = false;
+    var listening = false;
+    var voiceBtn = $("btn-iv-voice");
+    voiceBtn.addEventListener("click", function () {
+      if (listening) { rec.stop(); return; }
+      try {
+        rec.start();
+        listening = true;
+        voiceBtn.textContent = "录音中…（点击停止）";
+      } catch (e) { toast("语音识别启动失败"); }
+    });
+    rec.onresult = function (e) {
+      var t = "";
+      try { t = e.results[0][0].transcript || ""; } catch (err) { t = ""; }
+      if (t) $("iv-answer").value += t;
+    };
+    rec.onend = function () { listening = false; voiceBtn.textContent = "语音输入"; };
+    rec.onerror = function () { listening = false; voiceBtn.textContent = "语音输入"; };
+  } else {
+    $("btn-iv-voice").classList.add("hidden");
+  }
+
+  // ================= Tab 3: 多 JD 对比 =================
+  function cmpInputHtml(i) {
+    return '<div style="margin-bottom:14px;">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">'
+      + '<div style="font-size:13px;font-weight:600;color:#33414F;">JD ' + (i + 1) + '</div>'
+      + (i > 1 ? '<button class="link-btn cmp-remove" data-i="' + i + '">删除</button>' : '')
+      + '</div>'
+      + '<textarea class="cmp-jd" data-i="' + i + '" placeholder="粘贴第 ' + (i + 1) + ' 份 JD…" style="min-height:110px;"></textarea>'
+      + '</div>';
+  }
+
+  function renderCmpInputs() {
+    var box = $("cmp-inputs");
+    var html = "";
+    for (var i = 0; i < cmpCount; i++) { html += cmpInputHtml(i); }
+    box.innerHTML = html;
+    box.querySelectorAll(".cmp-remove").forEach(function (b) {
+      b.addEventListener("click", function () {
+        if (cmpCount <= 2) return;
+        cmpCount--;
+        renderCmpInputs();
+      });
+    });
+  }
+  renderCmpInputs();
+
+  $("btn-cmp-add").addEventListener("click", function () {
+    if (cmpCount >= 4) { toast("最多对比 4 份 JD"); return; }
+    cmpCount++;
+    renderCmpInputs();
+  });
+
+  $("btn-toggle-cmp-resume").addEventListener("click", function () {
+    var w = $("cmp-resume-wrap");
+    var b = $("btn-toggle-cmp-resume");
+    if (w.classList.contains("hidden")) { w.classList.remove("hidden"); b.textContent = "- 收起简历"; }
+    else { w.classList.add("hidden"); b.textContent = "+ 附上我的简历（可选）"; }
+  });
+
+  $("btn-cmp").addEventListener("click", function () {
+    var jds = [];
+    document.querySelectorAll(".cmp-jd").forEach(function (ta) {
+      var v = ta.value.trim();
+      if (v) jds.push(v);
+    });
+    if (jds.length < 2) { setError("cmp-error", "请至少粘贴 2 份完整的 JD"); return; }
+    setError("cmp-error", "");
+    $("cmp-result").classList.add("hidden");
+    $("cmp-loading").classList.remove("hidden");
+    $("btn-cmp").disabled = true;
+    api("/api/compare", { jds: jds, resume: $("cmp-resume").value.trim() })
+      .then(renderCompare)
+      .catch(function (e) { setError("cmp-error", e.message || "对比失败，请稍后重试"); })
+      .finally(function () {
+        $("cmp-loading").classList.add("hidden");
+        $("btn-cmp").disabled = false;
+      });
+  });
+
+  function renderCompare(d) {
+    var el = $("cmp-result");
+    var html = '<div class="card">';
+
+    html += '<div class="sect-title">总体对比结论</div><div class="summary-text">' + esc(d.summary || "") + '</div>';
+
+    if (d.rows && d.rows.length) {
+      var n = cmpCount;
+      html += '<div class="sect"><div class="sect-title">逐项对比</div>';
+      html += '<table class="cmp-table">';
+      d.rows.forEach(function (row) {
+        var vals = row.values || [];
+        var cols = "";
+        for (var i = 0; i < n; i++) {
+          cols += '<td><div class="cmp-col-title">JD ' + (i + 1) + '</div>' + esc(vals[i] || "—") + '</td>';
+        }
+        html += '<tr><th>' + esc(row.dimension || "维度") + '</th>' + cols + '</tr>';
+      });
+      html += '</table></div>';
+    }
+
+    if (d.advice) {
+      html += '<div class="sect"><div class="sect-title">投递建议</div><div class="summary-text">' + esc(d.advice) + '</div></div>';
+    }
+
+    html += '<div class="btn-row"><button class="btn ghost small" id="btn-cmp-copy">复制为 Markdown</button></div></div>';
+    el.innerHTML = html;
+    el.classList.remove("hidden");
+    $("btn-cmp-copy").addEventListener("click", function () { copyText(buildCompareMd(d)); });
+  }
+
+  function buildCompareMd(d) {
+    var lines = ["# 多 JD 对比结果", "", "**总体对比结论**：" + (d.summary || "")];
+    if (d.rows && d.rows.length) {
+      d.rows.forEach(function (row) {
+        lines.push("", "## " + (row.dimension || "维度"));
+        (row.values || []).forEach(function (v, i) { lines.push("- JD" + (i + 1) + "：" + v); });
+      });
+    }
+    if (d.advice) lines.push("", "## 投递建议", d.advice);
+    return lines.join("\n");
+  }
 })();
 </script>
 </body>

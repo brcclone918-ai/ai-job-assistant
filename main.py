@@ -45,6 +45,11 @@ class InterviewRequest(BaseModel):
     messages: List[dict] = []
 
 
+class CompareRequest(BaseModel):
+    jds: List[str]
+    resume: str = ""
+
+
 # ---------- 提示词 ----------
 ANALYZE_SYSTEM = (
     "你是资深 HR 兼业务面试官，帮助求职者分析一份岗位 JD。\n"
@@ -66,6 +71,22 @@ INTERVIEW_SYSTEM = (
     "3. 出题总数不超过4道，难度递进：基础题→项目经历→场景/开放题。\n"
     "4. 第4道题用户回答后，给出整体评价与提升建议，并明确说“面试结束”。\n"
     "5. 题目要贴近 JD 的真实考察点。语气专业、友好、简洁，使用分段，不要长篇大论。"
+)
+
+COMPARE_SYSTEM = (
+    "你是资深 HR 兼业务面试官，帮助求职者横向对比多份岗位 JD。\n"
+    "必须只输出一个 JSON 对象，不要输出任何其他文字、注释或代码块标记。JSON 结构如下：\n"
+    '{"summary":"2-3句话的总体对比结论",'
+    '"rows":['
+    '{"dimension":"岗位定位","values":["JD1要点","JD2要点"]},'
+    '{"dimension":"硬性要求","values":["JD1要点","JD2要点"]},'
+    '{"dimension":"加分项","values":["JD1要点","JD2要点"]},'
+    '{"dimension":"面试考察侧重","values":["JD1要点","JD2要点"]},'
+    '{"dimension":"成长与薪资线索","values":["JD1要点","JD2要点"]}'
+    '],'
+    '"advice":"综合建议：哪个岗位更适合这位求职者、理由、下一步怎么准备"}\n'
+    "要求：rows 里每个 values 数组的长度必须与用户提供的 JD 数量完全一致，"
+    "按 JD 顺序一一对应；内容要具体，禁止空话套话。"
 )
 
 
@@ -161,3 +182,26 @@ def interview(req: InterviewRequest):
     ] + clean_history
     reply = call_deepseek(messages, temperature=0.7)
     return {"reply": reply}
+
+
+@app.post("/api/compare")
+def compare(req: CompareRequest):
+    jds = [j.strip() for j in (req.jds or []) if j and len(j.strip()) >= 20]
+    if len(jds) < 2:
+        raise HTTPException(status_code=400, detail="请至少提供 2 份完整的 JD（每份不少于 20 个字符）")
+    if len(jds) > 4:
+        raise HTTPException(status_code=400, detail="一次最多对比 4 份 JD")
+    resume = (req.resume or "").strip()
+    jd_text = "\n\n".join(f"JD{i + 1}：\n{j}" for i, j in enumerate(jds))
+    user_content = f"{jd_text}\n\n我的简历（如未提供则为空）：\n{resume or '（未提供）'}"
+    reply = call_deepseek(
+        [
+            {"role": "system", "content": COMPARE_SYSTEM},
+            {"role": "user", "content": user_content},
+        ],
+        temperature=0.4,
+    )
+    data = parse_json_loose(reply)
+    if data is None:
+        data = {"summary": reply, "rows": [], "advice": ""}
+    return data

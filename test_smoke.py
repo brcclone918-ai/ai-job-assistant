@@ -18,6 +18,18 @@ SAMPLE_JD = (
     "3. 有上线过小工具/网站/小程序的经验优先。"
 )
 
+SAMPLE_JD2 = (
+    "大模型应用工程师（全职，上海）\n"
+    "岗位职责：\n"
+    "1. 负责 Agent 与 RAG 系统的落地开发与效果评估；\n"
+    "2. 与产品协作，把大模型能力转化为可用功能；\n"
+    "3. 关注模型选型、成本与延迟优化。\n"
+    "任职要求：\n"
+    "1. Python 扎实，熟悉 LangChain/LlamaIndex 之一；\n"
+    "2. 有向量数据库使用经验（Milvus/Chroma/pgvector 等）；\n"
+    "3. 熟悉 Prompt 工程与评测方法，能独立做效果调优。"
+)
+
 
 def post(path, body):
     req = urllib.request.Request(
@@ -63,6 +75,15 @@ def main():
         ],
     })
     print("AI 点评+下一题:", (d2.get("reply") or "")[:100].replace("\n", " "))
+
+    print("\n== 6. /api/compare（双 JD 对比）==")
+    c = post("/api/compare", {"jds": [SAMPLE_JD, SAMPLE_JD2], "resume": ""})
+    print("summary:", (c.get("summary") or "")[:60].replace("\n", " "))
+    print("rows 数量:", len(c.get("rows") or []))
+    if c.get("rows"):
+        r0 = c["rows"][0]
+        print("第一行维度:", r0.get("dimension"), "| 值数量:", len(r0.get("values") or []))
+    print("advice:", (c.get("advice") or "")[:60].replace("\n", " "))
 
     print("\n全部通过 ✅")
 
