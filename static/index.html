@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Offer 教练 · AI 求职助手</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, Arial, sans-serif;
+    background: #F5F8FA;
+    color: #1F2933;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 32px 16px 56px; }
+
+  header { text-align: center; margin-bottom: 24px; }
+  header h1 { font-size: 26px; font-weight: 700; color: #1F2933; }
+  header h1 span { color: #2F7E9E; }
+  header p { margin-top: 6px; font-size: 14px; color: #6B7280; }
+
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab {
+    flex: 1; padding: 12px 0; text-align: center; font-size: 15px; font-weight: 600;
+    background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 10px; cursor: pointer;
+    color: #6B7280; transition: all .15s;
+  }
+  .tab.active { background: #2F7E9E; border-color: #2F7E9E; color: #fff; }
+
+  .card {
+    background: #FFFFFF; border: 1px solid #E2E8F0; border-radius: 14px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .card h2 { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+
+  textarea {
+    width: 100%; border: 1px solid #D3DCE6; border-radius: 8px; padding: 12px;
+    font-size: 14px; font-family: inherit; line-height: 1.6; color: #1F2933;
+    resize: vertical; background: #FAFCFD; min-height: 130px;
+  }
+  textarea:focus { outline: none; border-color: #2F7E9E; background: #fff; }
+
+  .hint { font-size: 12px; color: #9AA5B1; margin-top: 6px; }
+
+  .btn {
+    display: inline-block; border: none; border-radius: 8px; padding: 10px 22px;
+    font-size: 14px; font-weight: 600; cursor: pointer; background: #2F7E9E; color: #fff;
+    transition: opacity .15s;
+  }
+  .btn:hover { opacity: .9; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.ghost { background: #fff; color: #2F7E9E; border: 1px solid #2F7E9E; }
+  .btn.small { padding: 6px 12px; font-size: 12px; }
+  .btn-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+
+  .toggle-link { font-size: 13px; color: #2F7E9E; cursor: pointer; margin-top: 8px; display: inline-block; }
+  .hidden { display: none; }
+
+  .loading { text-align: center; color: #6B7280; font-size: 14px; padding: 18px 0; }
+  .loading::after {
+    content: ""; display: inline-block; width: 14px; height: 14px; margin-left: 8px;
+    border: 2px solid #D3DCE6; border-top-color: #2F7E9E; border-radius: 50%;
+    animation: spin .8s linear infinite; vertical-align: -2px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .result-block { margin-top: 16px; }
+  .score-row { display: flex; align-items: center; gap: 12px; margin: 10px 0 6px; }
+  .score-num { font-size: 22px; font-weight: 700; min-width: 52px; }
+  .score-bar { flex: 1; height: 10px; background: #EDF2F7; border-radius: 5px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 5px; transition: width .5s; }
+  .score-tag { font-size: 12px; padding: 2px 8px; border-radius: 999px; color: #fff; }
+
+  .sect-title { font-size: 14px; font-weight: 600; margin: 14px 0 8px; }
+  ul.plain { list-style: none; }
+  ul.plain li {
+    font-size: 14px; line-height: 1.65; padding: 7px 10px; background: #F7FAFC;
+    border-radius: 8px; margin-bottom: 6px; border-left: 3px solid #2F7E9E;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-size: 13px; background: #EAF3F8; color: #2F7E9E; border-radius: 999px; padding: 5px 12px; }
+
+  /* 面试区 */
+  .chat {
+    border: 1px solid #E2E8F0; border-radius: 12px; background: #FAFCFD;
+    padding: 14px; max-height: 420px; overflow-y: auto; min-height: 120px;
+  }
+  .msg { display: flex; margin-bottom: 12px; }
+  .msg .avatar {
+    flex: 0 0 30px; height: 30px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 13px; font-weight: 700; color: #fff; margin-right: 10px;
+  }
+  .msg.ai .avatar { background: #2F7E9E; }
+  .msg.user .avatar { background: #9AA5B1; }
+  .msg .bubble {
+    max-width: 82%; padding: 10px 13px; border-radius: 10px; font-size: 14px; line-height: 1.65;
+    white-space: pre-wrap; word-break: break-word;
+  }
+  .msg.ai .bubble { background: #fff; border: 1px solid #E2E8F0; border-top-left-radius: 2px; }
+  .msg.user { justify-content: flex-end; }
+  .msg.user .avatar { order: 2; margin-right: 0; margin-left: 10px; }
+  .msg.user .bubble { background: #2F7E9E; color: #fff; border-top-right-radius: 2px; }
+
+  .input-row { display: flex; gap: 8px; margin-top: 12px; }
+  .input-row textarea { min-height: 0; height: 56px; flex: 1; }
+
+  .error { background: #FDF0EF; border: 1px solid #F5C6C4; color: #B23B3B; font-size: 13px; border-radius: 8px; padding: 10px 12px; margin-top: 12px; }
+  footer { text-align: center; font-size: 12px; color: #9AA5B1; margin-top: 28px; line-height: 1.7; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Offer <span>教练</span></h1>
+    <p>AI 求职助手 · 粘贴一份 JD，得到匹配度分析、简历建议和模拟面试</p>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="analyze">① JD 分析</div>
+    <div class="tab" data-tab="interview">② 模拟面试</div>
+  </div>
+
+  <!-- ===== Tab 1: JD 分析 ===== -->
+  <div id="tab-analyze">
+    <div class="card">
+      <h2>粘贴职位描述（JD）</h2>
+      <textarea id="jd-input" placeholder="把招聘 JD 完整粘贴到这里…"></textarea>
+      <div class="hint">至少 20 个字符，越完整分析越准</div>
+      <div class="btn-row">
+        <button class="btn" id="btn-fill-sample">填入示例 JD</button>
+        <button class="btn ghost" id="btn-toggle-resume">+ 附上我的简历（可选）</button>
+      </div>
+      <div id="resume-wrap" class="hidden" style="margin-top:12px;">
+        <textarea id="resume-input" placeholder="粘贴你的简历要点（可选）…" style="min-height:90px;"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn" id="btn-analyze">开始分析</button>
+      </div>
+      <div id="analyze-loading" class="loading hidden">AI 正在分析 JD，请稍候…</div>
+      <div id="analyze-error" class="error hidden"></div>
+      <div id="analyze-result" class="result-block"></div>
+    </div>
+  </div>
+
+  <!-- ===== Tab 2: 模拟面试 ===== -->
+  <div id="tab-interview" class="hidden">
+    <div class="card">
+      <h2>目标 JD</h2>
+      <textarea id="iv-jd" placeholder="粘贴这份模拟面试对应的 JD…"></textarea>
+      <div class="btn-row">
+        <button class="btn" id="btn-iv-start">开始面试</button>
+        <button class="btn ghost" id="btn-iv-reset">重新开始</button>
+      </div>
+    </div>
+    <div class="card hidden" id="iv-chat-card">
+      <div class="chat" id="iv-chat"></div>
+      <div class="input-row">
+        <textarea id="iv-answer" placeholder="输入你的回答…（Enter 发送）"></textarea>
+        <button class="btn" id="btn-iv-send">发送</button>
+      </div>
+      <div class="btn-row">
+        <button class="btn ghost small" id="btn-iv-end">结束面试，让 AI 总结</button>
+      </div>
+      <div id="iv-loading" class="loading hidden">AI 思考中…</div>
+    </div>
+  </div>
+
+  <footer>数据仅发送至 DeepSeek API 处理，用于生成分析结果 · 仅供学习与求职参考</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  var SAMPLE_JD = "AI 应用开发工程师（全职，北京）\n岗位职责：\n1. 基于大模型 API 开发 AI 应用产品，负责 Prompt 工程与效果调优；\n2. 参与前后端全栈开发，独立完成功能从设计到上线；\n3. 对接业务需求，快速迭代 MVP。\n任职要求：\n1. 熟悉 Python 或 TypeScript；\n2. 有大模型 API 调用经验，了解 RAG、Agent 等常见架构；\n3. 有上线过小工具/网站/小程序的经验优先。";
+
+  var ivMessages = [];   // 面试历史 [{role, content}]
+  var interviewStarted = false;
+
+  // ---- 工具 ----
+  function api(path, body) {
+    return fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) {
+          var detail = (data && data.detail) ? data.detail : "请求失败";
+          throw new Error(detail);
+        }
+        return data;
+      });
+    });
+  }
+
+  function show(el) { el.classList.remove("hidden"); }
+  function hide(el) { el.classList.add("hidden"); }
+
+  function setError(id, msg) {
+    var el = $(id);
+    if (msg) { el.textContent = msg; show(el); } else { hide(el); }
+  }
+
+  function esc(s) {
+    return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // ---- Tab 切换 ----
+  document.querySelectorAll(".tab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
+      tab.classList.add("active");
+      var name = tab.getAttribute("data-tab");
+      hide($("tab-analyze"));
+      hide($("tab-interview"));
+      show(name === "analyze" ? $("tab-analyze") : $("tab-interview"));
+    });
+  });
+
+  // ---- Tab 1 ----
+  $("btn-fill-sample").addEventListener("click", function () { $("jd-input").value = SAMPLE_JD; });
+
+  $("btn-toggle-resume").addEventListener("click", function () {
+    var w = $("resume-wrap");
+    var btn = $("btn-toggle-resume");
+    if (w.classList.contains("hidden")) { show(w); btn.textContent = "- 收起简历"; }
+    else { hide(w); btn.textContent = "+ 附上我的简历（可选）"; }
+  });
+
+  $("btn-analyze").addEventListener("click", function () {
+    var jd = $("jd-input").value.trim();
+    if (jd.length < 20) { setError("analyze-error", "JD 太短啦，先粘贴完整职位描述（或用示例 JD）"); return; }
+    setError("analyze-error", "");
+    hide($("analyze-result"));
+    show($("analyze-loading"));
+    var btn = $("btn-analyze");
+    btn.disabled = true;
+    api("/api/analyze", { jd: jd, resume: $("resume-input").value.trim() })
+      .then(renderAnalyze)
+      .catch(function (e) { setError("analyze-error", e.message || "分析失败，请稍后重试"); })
+      .finally(function () { hide($("analyze-loading")); btn.disabled = false; });
+  });
+
+  function renderAnalyze(d) {
+    var el = $("analyze-result");
+    var html = '<div class="card">';
+
+    html += '<div class="sect-title">总体判断</div><div style="font-size:14px;line-height:1.7;">' + esc(d.summary || "") + '</div>';
+
+    var score = parseInt(d.match_score, 10);
+    if (!isNaN(score)) {
+      var color = score >= 70 ? "#52C41A" : (score >= 50 ? "#FAAD14" : "#EA6668");
+      var tag = score >= 70 ? "匹配度不错" : (score >= 50 ? "需要补强" : "匹配有难度");
+      html += '<div class="score-row">'
+        + '<div class="score-num" style="color:' + color + ';">' + score + '</div>'
+        + '<div class="score-bar"><div class="score-fill" style="width:' + Math.min(score, 100) + '%;background:' + color + ';"></div></div>'
+        + '<div class="score-tag" style="background:' + color + ';">' + tag + '</div>'
+        + '</div>';
+    }
+
+    if (d.must_have && d.must_have.length) {
+      html += '<div class="sect-title">硬性要求</div><ul class="plain">';
+      d.must_have.forEach(function (x) { html += '<li>' + esc(x) + '</li>'; });
+      html += '</ul>';
+    }
+    if (d.good_have && d.good_have.length) {
+      html += '<div class="sect-title">加分项</div><ul class="plain">';
+      d.good_have.forEach(function (x) { html += '<li>' + esc(x) + '</li>'; });
+      html += '</ul>';
+    }
+    if (d.resume_advice && d.resume_advice.length) {
+      html += '<div class="sect-title">简历修改建议</div><ul class="plain">';
+      d.resume_advice.forEach(function (x) { html += '<li>' + esc(x) + '</li>'; });
+      html += '</ul>';
+    }
+    if (d.interview_focus && d.interview_focus.length) {
+      html += '<div class="sect-title">面试可能考察</div><div class="chips">';
+      d.interview_focus.forEach(function (x) { html += '<span class="chip">' + esc(x) + '</span>'; });
+      html += '</div>';
+    }
+    html += '</div>';
+    el.innerHTML = html;
+    show(el);
+  }
+
+  // ---- Tab 2: 模拟面试 ----
+  function addMsg(role, text) {
+    var chat = $("iv-chat");
+    var m = document.createElement("div");
+    m.className = "msg " + role;
+    var avatar = role === "ai" ? "面" : "我";
+    m.innerHTML = '<div class="avatar">' + avatar + '</div><div class="bubble">' + esc(text) + '</div>';
+    chat.appendChild(m);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function setIvLoading(on) {
+    if (on) show($("iv-loading")); else hide($("iv-loading"));
+    $("btn-iv-send").disabled = on;
+    $("btn-iv-end").disabled = on;
+    $("btn-iv-start").disabled = on;
+  }
+
+  function askInterview() {
+    setIvLoading(true);
+    api("/api/interview", { jd: $("iv-jd").value.trim(), messages: ivMessages })
+      .then(function (d) {
+        ivMessages.push({ role: "assistant", content: d.reply });
+        addMsg("ai", d.reply);
+      })
+      .catch(function (e) {
+        addMsg("ai", "（出错了：" + (e.message || "未知错误") + "，请稍后再试）");
+      })
+      .finally(function () { setIvLoading(false); });
+  }
+
+  $("btn-iv-start").addEventListener("click", function () {
+    var jd = $("iv-jd").value.trim();
+    if (jd.length < 20) { alert("请先粘贴目标 JD（或用 Tab① 的示例 JD）"); return; }
+    ivMessages = [];
+    $("iv-chat").innerHTML = "";
+    $("iv-answer").value = "";
+    show($("iv-chat-card"));
+    interviewStarted = true;
+    askInterview();
+  });
+
+  $("btn-iv-send").addEventListener("click", function () {
+    var v = $("iv-answer").value.trim();
+    if (!v) return;
+    if (!interviewStarted) { alert("请先点击「开始面试」"); return; }
+    ivMessages.push({ role: "user", content: v });
+    addMsg("user", v);
+    $("iv-answer").value = "";
+    askInterview();
+  });
+
+  $("iv-answer").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("btn-iv-send").click(); }
+  });
+
+  $("btn-iv-end").addEventListener("click", function () {
+    if (!interviewStarted) return;
+    ivMessages.push({ role: "user", content: "面试到此结束，请给出整体评价和提升建议。" });
+    addMsg("user", "（结束面试）");
+    interviewStarted = false;
+    askInterview();
+  });
+
+  $("btn-iv-reset").addEventListener("click", function () {
+    ivMessages = [];
+    interviewStarted = false;
+    $("iv-chat").innerHTML = "";
+    $("iv-answer").value = "";
+    hide($("iv-chat-card"));
+  });
+})();
+</script>
+</body>
+</html>

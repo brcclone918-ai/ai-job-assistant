@@ -1,0 +1,163 @@
+# -*- coding: utf-8 -*-
+"""AI 求职助手 —— FastAPI 后端
+
+功能：
+1. POST /api/analyze    粘贴 JD（可选附简历）→ 匹配度分析 + 简历修改建议 + 面试考察点
+2. POST /api/interview  基于 JD 的模拟面试（出题 → 点评 → 再出题，最多 4 轮）
+
+运行：
+    .venv\\Scripts\\python -m uvicorn main:app --port 8000
+打开 http://127.0.0.1:8000 即可使用。
+"""
+
+import json
+import os
+from typing import List
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from openai import OpenAI
+from pydantic import BaseModel
+
+load_dotenv()
+
+app = FastAPI(title="AI 求职助手", description="粘贴 JD，得到匹配度分析、简历建议与模拟面试")
+
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "").strip()
+DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com").strip()
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat").strip()
+
+client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+STATIC_DIR = os.path.join(BASE_DIR, "static")
+
+
+# ---------- 请求模型 ----------
+class AnalyzeRequest(BaseModel):
+    jd: str
+    resume: str = ""
+
+
+class InterviewRequest(BaseModel):
+    jd: str
+    messages: List[dict] = []
+
+
+# ---------- 提示词 ----------
+ANALYZE_SYSTEM = (
+    "你是资深 HR 兼业务面试官，帮助求职者分析一份岗位 JD。\n"
+    "必须只输出一个 JSON 对象，不要输出任何其他文字、注释或代码块标记。JSON 结构如下：\n"
+    '{"summary":"用2-3句话概括岗位核心要求与总体判断",'
+    '"match_score":0到100的整数,'
+    '"must_have":["硬性要求1","硬性要求2"],'
+    '"good_have":["加分项1","加分项2"],'
+    '"resume_advice":["具体可操作的简历修改建议1","建议2"],'
+    '"interview_focus":["面试官可能重点考察的点1","点2"]}\n'
+    "要求：简历建议必须具体到可以照着改，禁止空话套话；"
+    "如果用户没有提供简历，match_score 表示你对该岗位匹配难度的估计，并在 summary 中说明。"
+)
+
+INTERVIEW_SYSTEM = (
+    "你是资深面试官，根据用户提供的 JD 进行模拟面试。规则：\n"
+    "1. 对话刚开始（没有任何历史）时，先用一句话说明会重点考察哪些能力，然后出第一道题。\n"
+    "2. 用户回答后：先点评（1-2个优点、1-2个不足），再出下一道题。\n"
+    "3. 出题总数不超过4道，难度递进：基础题→项目经历→场景/开放题。\n"
+    "4. 第4道题用户回答后，给出整体评价与提升建议，并明确说“面试结束”。\n"
+    "5. 题目要贴近 JD 的真实考察点。语气专业、友好、简洁，使用分段，不要长篇大论。"
+)
+
+
+# ---------- 工具函数 ----------
+def call_deepseek(messages: List[dict], temperature: float = 0.7) -> str:
+    """调用 DeepSeek，返回模型回复文本。"""
+    if not DEEPSEEK_API_KEY:
+        raise HTTPException(status_code=500, detail="未配置 DEEPSEEK_API_KEY，请在 .env 文件中填写")
+    try:
+        resp = client.chat.completions.create(
+            model=DEEPSEEK_MODEL,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=2048,
+        )
+        return resp.choices[0].message.content or ""
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=502, detail=f"DeepSeek 调用失败：{exc}") from exc
+
+
+def parse_json_loose(text: str):
+    """尽量从模型输出中解析 JSON；失败返回 None。"""
+    if not text:
+        return None
+    cleaned = text.strip()
+    # 去掉 ```json ... ``` 围栏
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("`").strip()
+        if cleaned.lower().startswith("json"):
+            cleaned = cleaned[4:].strip()
+    for candidate in (text.strip(), cleaned):
+        try:
+            return json.loads(candidate)
+        except Exception:
+            continue
+    return None
+
+
+# ---------- 路由 ----------
+@app.get("/")
+def index():
+    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+
+
+@app.get("/api/health")
+def health():
+    return {"status": "ok", "model": DEEPSEEK_MODEL}
+
+
+@app.post("/api/analyze")
+def analyze(req: AnalyzeRequest):
+    jd = (req.jd or "").strip()
+    if len(jd) < 20:
+        raise HTTPException(status_code=400, detail="JD 内容太短，请粘贴完整的职位描述")
+    resume = (req.resume or "").strip()
+    user_content = f"JD 内容：\n{jd}\n\n我的简历（如未提供则为空）：\n{resume or '（未提供）'}"
+    reply = call_deepseek(
+        [
+            {"role": "system", "content": ANALYZE_SYSTEM},
+            {"role": "user", "content": user_content},
+        ],
+        temperature=0.4,
+    )
+    data = parse_json_loose(reply)
+    if data is None:
+        data = {
+            "summary": reply,
+            "match_score": None,
+            "must_have": [],
+            "good_have": [],
+            "resume_advice": [],
+            "interview_focus": [],
+        }
+    return data
+
+
+@app.post("/api/interview")
+def interview(req: InterviewRequest):
+    jd = (req.jd or "").strip()
+    if len(jd) < 20:
+        raise HTTPException(status_code=400, detail="JD 内容太短，请先粘贴完整的职位描述")
+    history = req.messages or []
+    clean_history = [
+        {"role": m.get("role"), "content": (m.get("content") or "").strip()}
+        for m in history
+        if m.get("role") in ("user", "assistant") and (m.get("content") or "").strip()
+    ]
+    messages = [
+        {"role": "system", "content": INTERVIEW_SYSTEM},
+        {"role": "user", "content": f"目标 JD：\n{jd}"},
+    ] + clean_history
+    reply = call_deepseek(messages, temperature=0.7)
+    return {"reply": reply}
