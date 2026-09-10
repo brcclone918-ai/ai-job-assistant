@@ -15,7 +15,7 @@ import os
 from typing import List
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from openai import OpenAI
 from pydantic import BaseModel
@@ -136,6 +136,52 @@ def index():
 @app.get("/api/health")
 def health():
     return {"status": "ok", "model": DEEPSEEK_MODEL}
+
+
+ALLOWED_RESUME_EXT = {".pdf", ".txt"}
+MAX_RESUME_BYTES = 10 * 1024 * 1024
+
+
+@app.post("/api/upload_resume")
+async def upload_resume(file: UploadFile = File(...)):
+    """上传简历文件（PDF / TXT），解析出纯文本返回。"""
+    filename = file.filename or "resume"
+    ext = os.path.splitext(filename)[1].lower()
+    if ext not in ALLOWED_RESUME_EXT:
+        raise HTTPException(status_code=400, detail="仅支持 PDF 或 TXT 格式")
+    data = await file.read()
+    if len(data) > MAX_RESUME_BYTES:
+        raise HTTPException(status_code=400, detail="文件过大，上限 10MB")
+
+    text = ""
+    if ext == ".pdf":
+        try:
+            import io
+
+            from pypdf import PdfReader
+
+            reader = PdfReader(io.BytesIO(data))
+            parts = []
+            for page in reader.pages:
+                parts.append(page.extract_text() or "")
+            text = "\n".join(parts)
+        except HTTPException:
+            raise
+        except Exception as exc:  # noqa: BLE001
+            raise HTTPException(
+                status_code=400,
+                detail=f"PDF 解析失败（可能是扫描件或加密文件）：{exc}",
+            ) from exc
+    else:
+        text = data.decode("utf-8", errors="replace")
+
+    text = text.strip()
+    if len(text) < 10:
+        raise HTTPException(
+            status_code=400,
+            detail="未能从文件中提取到足够文字（扫描版 PDF 暂不支持，可直接粘贴文本）",
+        )
+    return {"filename": filename, "chars": len(text), "text": text}
 
 
 @app.post("/api/analyze")

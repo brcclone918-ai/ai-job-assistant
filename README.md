@@ -9,6 +9,7 @@
 | 功能 | 说明 |
 | --- | --- |
 | JD 分析 | 粘贴 JD（可选附简历），输出总体判断、匹配度评分、硬性要求、加分项、简历修改建议、面试考察点；结果可一键复制为 Markdown |
+| 简历文件上传 | 上传 PDF / TXT 简历，自动解析成文本填入，可直接用于分析和对比 |
 | 模拟面试 | 基于 JD 出题，你作答后 AI 点评并出下一题，4 轮后给出整体评价；支持语音输入（浏览器支持时） |
 | 多 JD 对比 | 同时对比 2-4 份 JD 的岗位定位、硬性要求、加分项、考察侧重、成长线索，给出投递建议 |
 
@@ -55,6 +56,7 @@ ai-job-assistant/
 - `POST /api/analyze` — `{ "jd": "...", "resume": "(可选)" }` → 单份 JD 的结构化分析
 - `POST /api/interview` — `{ "jd": "...", "messages": [{"role":"user","content":"..."}] }` → 面试官回复
 - `POST /api/compare` — `{ "jds": ["JD1","JD2",...], "resume": "(可选)" }` → 多 JD 对比（2-4 份）
+- `POST /api/upload_resume` — multipart 上传 `file`（PDF / TXT，≤10MB）→ `{ filename, chars, text }`
 - `GET /api/health` — 健康检查
 
 ## 安全提醒（重要）

@@ -179,6 +179,11 @@
       </div>
       <div id="resume-wrap" class="hidden" style="margin-top:12px;">
         <textarea id="resume-input" placeholder="粘贴你的简历要点（可选），分析会更贴合你的情况…" style="min-height:90px;"></textarea>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn ghost small" id="btn-upload-resume">上传简历文件（PDF/TXT）</button>
+          <input type="file" id="file-resume" accept=".pdf,.txt" class="hidden">
+          <span class="hint" style="margin-top:0;">上传后自动填入上方文本框，可编辑</span>
+        </div>
       </div>
       <div class="btn-row">
         <button class="btn" id="btn-analyze">开始分析</button>
@@ -226,6 +231,11 @@
       </div>
       <div id="cmp-resume-wrap" class="hidden" style="margin-top:12px;">
         <textarea id="cmp-resume" placeholder="粘贴你的简历要点（可选），对比建议会更贴合你的情况…" style="min-height:90px;"></textarea>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn ghost small" id="btn-upload-cmp-resume">上传简历文件（PDF/TXT）</button>
+          <input type="file" id="file-cmp-resume" accept=".pdf,.txt" class="hidden">
+          <span class="hint" style="margin-top:0;">上传后自动填入上方文本框，可编辑</span>
+        </div>
       </div>
       <div class="btn-row">
         <button class="btn" id="btn-cmp">开始对比</button>
@@ -413,6 +423,37 @@
     });
     return lines.join("\n");
   }
+
+  // ---- 简历文件上传（PDF/TXT → 自动填入文本框）----
+  function bindResumeUpload(btnId, fileId, targetId) {
+    var btn = $(btnId);
+    var file = $(fileId);
+    var target = $(targetId);
+    btn.addEventListener("click", function () { file.click(); });
+    file.addEventListener("change", function () {
+      if (!file.files || !file.files[0]) return;
+      var fd = new FormData();
+      fd.append("file", file.files[0]);
+      var orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = "解析中…";
+      fetch("/api/upload_resume", { method: "POST", body: fd })
+        .then(function (res) {
+          return res.json().then(function (d) {
+            if (!res.ok) throw new Error(d.detail || "上传失败");
+            return d;
+          });
+        })
+        .then(function (d) {
+          target.value = d.text;
+          toast("已提取 " + d.chars + " 字，可编辑后使用");
+        })
+        .catch(function (e) { toast("解析失败：" + (e.message || "未知错误")); })
+        .finally(function () { btn.disabled = false; btn.textContent = orig; file.value = ""; });
+    });
+  }
+  bindResumeUpload("btn-upload-resume", "file-resume", "resume-input");
+  bindResumeUpload("btn-upload-cmp-resume", "file-cmp-resume", "cmp-resume");
 
   // ================= Tab 2: 模拟面试 =================
   function addMsg(role, text) {
