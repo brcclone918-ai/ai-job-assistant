@@ -13,6 +13,7 @@
 | 模拟面试 | 基于 JD 出题，你作答后 AI 点评并出下一题，4 轮后给出整体评价；支持语音输入（浏览器支持时） |
 | 多 JD 对比 | 同时对比 2-4 份 JD 的岗位定位、硬性要求、加分项、考察侧重、成长线索，给出投递建议 |
 | 简历优化 | 粘贴/上传简历，按你给的优化方向（目标岗位、突出重点、篇幅风格等）重写简历，附改动说明与投递提醒 |
+| 文风学习 | 贴一段文字样本，AI 提炼"文风指令"并应用到所有输出；不同用户可学习不同文风，观感各异；可编辑、可清除 |
 
 ## 技术栈
 
@@ -59,6 +60,10 @@ ai-job-assistant/
 - `POST /api/compare` — `{ "jds": ["JD1","JD2",...], "resume": "(可选)" }` → 多 JD 对比（2-4 份）
 - `POST /api/optimize_resume` — `{ "resume": "...", "direction": "优化方向" }` → `{ optimized, changes, tips }`
 - `POST /api/upload_resume` — multipart 上传 `file`（PDF / TXT，≤10MB）→ `{ filename, chars, text }`
+- `GET /api/style` — 查看当前文风（`{ enabled, style_text }`）
+- `POST /api/style/learn` — `{ "sample": "文风样本" }` → 学习并保存文风指令
+- `POST /api/style/save` — `{ "style_text": "..." }` → 手动保存/修改文风指令
+- `POST /api/style/clear` — 清除文风（恢复默认）
 - `GET /api/health` — 健康检查
 
 ## 安全提醒（重要）

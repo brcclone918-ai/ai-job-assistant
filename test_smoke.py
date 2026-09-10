@@ -46,6 +46,13 @@ def get(path):
         return resp.read().decode("utf-8")
 
 
+def get_json(path):
+    import json
+
+    with urllib.request.urlopen(BASE + path, timeout=10) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
 def main():
     print("== 1. 首页可达 ==")
     html = get("/")
@@ -94,6 +101,21 @@ def main():
     print("optimized 开头:", (o.get("optimized") or "")[:60].replace("\n", " "))
     print("changes 条数:", len(o.get("changes") or []))
     print("tips 条数:", len(o.get("tips") or []))
+
+    print("\n== 8. 文风学习 → 注入 → 清除 ==")
+    post("/api/style/clear", {})
+    s0 = get_json("/api/style")
+    print("初始 enabled:", s0.get("enabled"))
+    learn = post("/api/style/learn", {"sample": "咱就说，找工作这事别慌。JD 看不懂？拆开看。先看硬性要求，再看加分项，一条条对，不整虚的。语气要接地气、带点俏皮，多用短句。"})
+    st = learn.get("style_text") or ""
+    print("学习到文风指令长度:", len(st))
+    s1 = get_json("/api/style")
+    print("保存后 enabled:", s1.get("enabled"))
+    d3 = post("/api/analyze", {"jd": SAMPLE_JD, "resume": ""})
+    print("文风下 analyze summary:", (d3.get("summary") or "")[:70].replace("\n", " "))
+    post("/api/style/clear", {})
+    s2 = get_json("/api/style")
+    print("清除后 enabled:", s2.get("enabled"))
 
     print("\n全部通过 ✅")
 

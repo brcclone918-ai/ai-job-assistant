@@ -55,6 +55,14 @@ class OptimizeRequest(BaseModel):
     direction: str = ""
 
 
+class StyleLearnRequest(BaseModel):
+    sample: str
+
+
+class StyleSaveRequest(BaseModel):
+    style_text: str
+
+
 # ---------- 提示词 ----------
 ANALYZE_SYSTEM = (
     "你是资深 HR 兼业务面试官，帮助求职者分析一份岗位 JD。\n"
@@ -107,6 +115,18 @@ OPTIMIZE_SYSTEM = (
     "4. tips 给 2-3 条与投递或面试准备相关的实用提醒。"
 )
 
+STYLE_LEARN_SYSTEM = (
+    "你是文风分析专家。用户会给出一段文字样本，请分析其文风特征，"
+    "生成一段可以直接指导 AI 模仿的“文风指令”。\n"
+    "必须只输出一个 JSON 对象，不要输出其他内容：\n"
+    '{"style_text":"一段 100-200 字的文风指令：具体描述语气、用词、句式、结构、标点、称呼等可执行特征，'
+    '并附 1 句该文风的示例句，可直接作为系统提示词使用",'
+    '"summary":"用一句话概括这种文风的整体感觉"}\n'
+    "要求：指令必须具体可执行（例如：多用短句、口语化、爱用比喻、先给结论再展开、用“咱”自称等），禁止空泛。"
+)
+
+STYLE_FILE = os.path.join(BASE_DIR, "style_profile.json")
+
 
 # ---------- 工具函数 ----------
 def call_deepseek(messages: List[dict], temperature: float = 0.7) -> str:
@@ -143,6 +163,33 @@ def parse_json_loose(text: str):
         except Exception:
             continue
     return None
+
+
+# ---------- 文风学习 ----------
+def load_style() -> str:
+    """读取已保存的文风指令；没有则返回空串。"""
+    try:
+        with open(STYLE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return (data.get("style_text") or "").strip()
+    except Exception:
+        return ""
+
+
+def save_style(text: str) -> None:
+    with open(STYLE_FILE, "w", encoding="utf-8") as f:
+        json.dump({"style_text": text.strip()}, f, ensure_ascii=False, indent=2)
+
+
+def with_style(system_prompt: str) -> str:
+    """若已启用文风，则在系统提示词末尾追加文风要求。"""
+    style = load_style()
+    if style:
+        return system_prompt + (
+            f"\n【文风要求】你的文字内容必须遵循以下文风：{style}\n"
+            "（仅影响表达风格；若已要求输出 JSON，仍必须严格输出 JSON，只是字段内容按该文风来写）"
+        )
+    return system_prompt
 
 
 # ---------- 路由 ----------
@@ -211,7 +258,7 @@ def analyze(req: AnalyzeRequest):
     user_content = f"JD 内容：\n{jd}\n\n我的简历（如未提供则为空）：\n{resume or '（未提供）'}"
     reply = call_deepseek(
         [
-            {"role": "system", "content": ANALYZE_SYSTEM},
+            {"role": "system", "content": with_style(ANALYZE_SYSTEM)},
             {"role": "user", "content": user_content},
         ],
         temperature=0.4,
@@ -241,7 +288,7 @@ def interview(req: InterviewRequest):
         if m.get("role") in ("user", "assistant") and (m.get("content") or "").strip()
     ]
     messages = [
-        {"role": "system", "content": INTERVIEW_SYSTEM},
+        {"role": "system", "content": with_style(INTERVIEW_SYSTEM)},
         {"role": "user", "content": f"目标 JD：\n{jd}"},
     ] + clean_history
     reply = call_deepseek(messages, temperature=0.7)
@@ -260,7 +307,7 @@ def compare(req: CompareRequest):
     user_content = f"{jd_text}\n\n我的简历（如未提供则为空）：\n{resume or '（未提供）'}"
     reply = call_deepseek(
         [
-            {"role": "system", "content": COMPARE_SYSTEM},
+            {"role": "system", "content": with_style(COMPARE_SYSTEM)},
             {"role": "user", "content": user_content},
         ],
         temperature=0.4,
@@ -280,7 +327,7 @@ def optimize_resume(req: OptimizeRequest):
     user_content = f"我的优化方向：\n{direction}\n\n我的原始简历：\n{resume}"
     reply = call_deepseek(
         [
-            {"role": "system", "content": OPTIMIZE_SYSTEM},
+            {"role": "system", "content": with_style(OPTIMIZE_SYSTEM)},
             {"role": "user", "content": user_content},
         ],
         temperature=0.4,
@@ -289,3 +336,45 @@ def optimize_resume(req: OptimizeRequest):
     if data is None:
         data = {"optimized": reply, "changes": [], "tips": []}
     return data
+
+
+# ---------- 文风学习接口 ----------
+@app.get("/api/style")
+def get_style():
+    text = load_style()
+    return {"enabled": bool(text), "style_text": text}
+
+
+@app.post("/api/style/learn")
+def learn_style(req: StyleLearnRequest):
+    sample = (req.sample or "").strip()
+    if len(sample) < 30:
+        raise HTTPException(status_code=400, detail="文风样本太短，请粘贴至少 30 个字符")
+    reply = call_deepseek(
+        [
+            {"role": "system", "content": STYLE_LEARN_SYSTEM},
+            {"role": "user", "content": f"文风样本：\n{sample}"},
+        ],
+        temperature=0.3,
+    )
+    data = parse_json_loose(reply) or {}
+    style_text = (data.get("style_text") or reply or "").strip()
+    if not style_text:
+        raise HTTPException(status_code=502, detail="文风分析失败，请重试")
+    save_style(style_text)
+    return {"style_text": style_text, "summary": (data.get("summary") or "").strip()}
+
+
+@app.post("/api/style/save")
+def save_style_endpoint(req: StyleSaveRequest):
+    text = (req.style_text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="文风指令不能为空")
+    save_style(text)
+    return {"ok": True, "style_text": text}
+
+
+@app.post("/api/style/clear")
+def clear_style_endpoint():
+    save_style("")
+    return {"ok": True}

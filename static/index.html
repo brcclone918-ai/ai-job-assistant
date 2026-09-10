@@ -33,9 +33,9 @@
     margin-bottom: 18px;
   }
   .tab {
-    flex: 1; padding: 10px 0; text-align: center; font-size: 14px; font-weight: 600;
+    flex: 1; padding: 9px 0; text-align: center; font-size: 13px; font-weight: 600;
     border-radius: 9px; cursor: pointer; color: #6B7280; transition: all .15s;
-    border: none; background: transparent;
+    border: none; background: transparent; white-space: nowrap;
   }
   .tab.active { background: #fff; color: #2F7E9E; box-shadow: 0 1px 3px rgba(31,41,51,.08); }
 
@@ -165,6 +165,7 @@
     <button class="tab" data-tab="interview">② 模拟面试</button>
     <button class="tab" data-tab="compare">③ 多 JD 对比</button>
     <button class="tab" data-tab="optimize">④ 简历优化</button>
+    <button class="tab" data-tab="style">⑤ 文风</button>
   </div>
 
   <!-- ===== Tab 1: JD 分析 ===== -->
@@ -272,6 +273,33 @@
     </div>
   </div>
 
+  <!-- ===== Tab 5: 文风 ===== -->
+  <div id="tab-style" class="hidden">
+    <div class="card">
+      <div class="card-title">学习文风</div>
+      <div class="card-desc">贴一段你喜欢的文字（自己写的、欣赏的博主、期望的语气都行），AI 会提炼出"文风指令"，之后所有输出都按这个风格来。不同人贴不同样本，观感就完全不同。</div>
+      <textarea id="style-sample" placeholder="贴一段至少 30 个字的文风样本…&#10;例如：&quot;咱就说，找工作这事别慌。JD 看不懂？拆开看。先看硬性要求，再看加分项，一条条对，不整虚的。&quot;" style="min-height:110px;"></textarea>
+      <div class="btn-row">
+        <button class="btn" id="btn-style-learn">学习并应用</button>
+        <span class="hint" style="margin-top:0;">学习后会立即生效，作用于全部功能</span>
+      </div>
+      <div id="style-learn-loading" class="loading hidden">正在分析文风特征…</div>
+      <div id="style-learn-error" class="error hidden"></div>
+      <div id="style-learn-result" class="result-block"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">当前文风
+        <span id="style-status" style="display:inline-block;margin-left:8px;font-size:12px;font-weight:600;padding:2px 10px;border-radius:999px;vertical-align:1px;">加载中…</span>
+      </div>
+      <div class="card-desc">可直接编辑文风指令后保存，不满意就清除</div>
+      <textarea id="style-text" placeholder="（尚未学习文风）" style="min-height:120px;"></textarea>
+      <div class="btn-row">
+        <button class="btn ghost small" id="btn-style-save">保存修改</button>
+        <button class="btn ghost small" id="btn-style-clear">清除文风</button>
+      </div>
+    </div>
+  </div>
+
   <footer>数据仅发送至 DeepSeek API 处理，用于生成分析结果 · 仅供学习与求职参考</footer>
 </div>
 <div class="toast" id="toast"></div>
@@ -341,7 +369,7 @@
       document.querySelectorAll(".tab").forEach(function (t) { t.classList.remove("active"); });
       tab.classList.add("active");
       var name = tab.getAttribute("data-tab");
-      ["analyze", "interview", "compare", "optimize"].forEach(function (n) {
+      ["analyze", "interview", "compare", "optimize", "style"].forEach(function (n) {
         $("tab-" + n).classList.toggle("hidden", n !== name);
       });
     });
@@ -727,6 +755,69 @@
       copyText(d.optimized || "");
     });
   }
+
+  // ================= Tab 5: 文风 =================
+  function refreshStyleUi() {
+    fetch("/api/style")
+      .then(function (res) { return res.json(); })
+      .then(function (d) {
+        $("style-text").value = d.style_text || "";
+        var st = $("style-status");
+        if (d.enabled) { st.textContent = "已启用"; st.style.background = "#E3F2E9"; st.style.color = "#2E9E5B"; }
+        else { st.textContent = "未启用"; st.style.background = "#EDF1F6"; st.style.color = "#6B7280"; }
+      })
+      .catch(function () {
+        var st = $("style-status");
+        st.textContent = "读取失败"; st.style.background = "#FDF1EF"; st.style.color = "#B23B3B";
+      });
+  }
+
+  $("btn-style-learn").addEventListener("click", function () {
+    var sample = $("style-sample").value.trim();
+    if (sample.length < 30) { setError("style-learn-error", "样本太短，请贴至少 30 个字"); return; }
+    setError("style-learn-error", "");
+    $("style-learn-result").classList.add("hidden");
+    $("style-learn-loading").classList.remove("hidden");
+    $("btn-style-learn").disabled = true;
+    api("/api/style/learn", { sample: sample })
+      .then(function (d) {
+        $("style-text").value = d.style_text || "";
+        var html = '<div class="sect"><div class="sect-title">文风分析结果</div>'
+          + '<div class="summary-text" style="font-size:13.5px;line-height:1.75;">' + esc(d.summary || "") + '</div></div>'
+          + '<div class="btn-row"><button class="btn ghost small" id="btn-style-preview">用示例 JD 感受一下</button></div>';
+        $("style-learn-result").innerHTML = html;
+        $("style-learn-result").classList.remove("hidden");
+        $("btn-style-preview").addEventListener("click", function () {
+          document.querySelector('.tab[data-tab="analyze"]').click();
+          $("jd-input").value = SAMPLE_JD;
+          $("btn-analyze").click();
+        });
+        refreshStyleUi();
+        toast("文风已学习并生效");
+      })
+      .catch(function (e) { setError("style-learn-error", e.message || "学习失败，请重试"); })
+      .finally(function () {
+        $("style-learn-loading").classList.add("hidden");
+        $("btn-style-learn").disabled = false;
+      });
+  });
+
+  $("btn-style-save").addEventListener("click", function () {
+    var t = $("style-text").value.trim();
+    if (!t) { toast("文风指令不能为空"); return; }
+    api("/api/style/save", { style_text: t })
+      .then(function () { toast("文风已保存"); refreshStyleUi(); })
+      .catch(function (e) { toast("保存失败：" + (e.message || "未知错误")); });
+  });
+
+  $("btn-style-clear").addEventListener("click", function () {
+    if (!confirm("确定清除当前文风吗？清除后所有输出恢复默认风格。")) return;
+    api("/api/style/clear", {})
+      .then(function () { $("style-text").value = ""; toast("文风已清除"); refreshStyleUi(); })
+      .catch(function (e) { toast("清除失败：" + (e.message || "未知错误")); });
+  });
+
+  refreshStyleUi();
 })();
 </script>
 </body>
