@@ -252,7 +252,7 @@
   <div id="tab-optimize" class="hidden">
     <div class="card">
       <div class="card-title">我的简历</div>
-      <div class="card-desc">粘贴或上传你的简历，AI 会按你给的优化方向重写</div>
+      <div class="card-desc">粘贴或上传你的简历，AI 会按你给的优化方向重写。第一次提交时系统会自动学习你的简历文风并保持（按账号区分）</div>
       <textarea id="opt-resume" placeholder="粘贴你的简历全文…"></textarea>
       <div class="btn-row" style="margin-top:8px;">
         <button class="btn ghost small" id="btn-upload-opt-resume">上传简历文件（PDF/TXT）</button>
@@ -273,26 +273,21 @@
     </div>
   </div>
 
-  <!-- ===== Tab 5: 文风 ===== -->
+  <!-- ===== Tab 5: 个人文风（自动学习） ===== -->
   <div id="tab-style" class="hidden">
     <div class="card">
-      <div class="card-title">学习文风</div>
-      <div class="card-desc">贴一段你喜欢的文字（自己写的、欣赏的博主、期望的语气都行），AI 会提炼出"文风指令"，之后所有输出都按这个风格来。不同人贴不同样本，观感就完全不同。</div>
-      <textarea id="style-sample" placeholder="贴一段至少 30 个字的文风样本…&#10;例如：&quot;咱就说，找工作这事别慌。JD 看不懂？拆开看。先看硬性要求，再看加分项，一条条对，不整虚的。&quot;" style="min-height:110px;"></textarea>
-      <div class="btn-row">
-        <button class="btn" id="btn-style-learn">学习并应用</button>
-        <span class="hint" style="margin-top:0;">学习后会立即生效，作用于全部功能</span>
-      </div>
-      <div id="style-learn-loading" class="loading hidden">正在分析文风特征…</div>
-      <div id="style-learn-error" class="error hidden"></div>
-      <div id="style-learn-result" class="result-block"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">当前文风
+      <div class="card-title">我的账号
         <span id="style-status" style="display:inline-block;margin-left:8px;font-size:12px;font-weight:600;padding:2px 10px;border-radius:999px;vertical-align:1px;">加载中…</span>
       </div>
-      <div class="card-desc">可直接编辑文风指令后保存，不满意就清除</div>
-      <textarea id="style-text" placeholder="（尚未学习文风）" style="min-height:120px;"></textarea>
+      <div class="card-desc" style="line-height:1.8;">
+        账号标识：<span id="my-uid" style="font-family:Consolas,monospace;color:#2F7E9E;word-break:break-all;"></span><br>
+        自动生成并保存在本浏览器；每个账号的文风相互独立，换浏览器/设备会得到新账号。<button class="link-btn" id="btn-uid-reset">重新生成账号</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">我的个人文风</div>
+      <div class="card-desc">第一次在「④ 简历优化」提交简历时，系统自动学习你的简历文风并保存；之后所有输出都会保持你的风格。也可以手动编辑或清除。</div>
+      <textarea id="style-text" placeholder="（尚未学习文风）第一次在简历优化页提交简历后会自动生成" style="min-height:120px;"></textarea>
       <div class="btn-row">
         <button class="btn ghost small" id="btn-style-save">保存修改</button>
         <button class="btn ghost small" id="btn-style-clear">清除文风</button>
@@ -309,6 +304,17 @@
   "use strict";
 
   var $ = function (id) { return document.getElementById(id); };
+
+  // ---- 账号标识：自动生成并保存在本浏览器，用于区分不同用户的文风 ----
+  function getUid() {
+    var key = "offercoach_uid";
+    var v = localStorage.getItem(key);
+    if (!v) {
+      v = "u_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-6);
+      localStorage.setItem(key, v);
+    }
+    return v;
+  }
 
   var SAMPLE_JD = "AI 应用开发工程师（全职，北京）\n岗位职责：\n1. 基于大模型 API 开发 AI 应用产品，负责 Prompt 工程与效果调优；\n2. 参与前后端全栈开发，独立完成功能从设计到上线；\n3. 对接业务需求，快速迭代 MVP。\n任职要求：\n1. 熟悉 Python 或 TypeScript；\n2. 有大模型 API 调用经验，了解 RAG、Agent 等常见架构；\n3. 有上线过小工具/网站/小程序的经验优先。";
   var SAMPLE_JD2 = "大模型应用工程师（全职，上海）\n岗位职责：\n1. 负责 Agent 与 RAG 系统的落地开发与效果评估；\n2. 与产品协作，把大模型能力转化为可用功能；\n3. 关注模型选型、成本与延迟优化。\n任职要求：\n1. Python 扎实，熟悉 LangChain/LlamaIndex 之一；\n2. 有向量数据库使用经验（Milvus/Chroma/pgvector 等）；\n3. 熟悉 Prompt 工程与评测方法，能独立做效果调优。";
@@ -392,7 +398,7 @@
     $("analyze-result").classList.add("hidden");
     $("analyze-loading").classList.remove("hidden");
     $("btn-analyze").disabled = true;
-    api("/api/analyze", { jd: jd, resume: $("resume-input").value.trim() })
+    api("/api/analyze", { jd: jd, resume: $("resume-input").value.trim(), uid: getUid() })
       .then(renderAnalyze)
       .catch(function (e) { setError("analyze-error", e.message || "分析失败，请稍后重试"); })
       .finally(function () {
@@ -530,7 +536,7 @@
 
   function askInterview() {
     setIvLoading(true);
-    api("/api/interview", { jd: $("iv-jd").value.trim(), messages: ivMessages })
+    api("/api/interview", { jd: $("iv-jd").value.trim(), messages: ivMessages, uid: getUid() })
       .then(function (d) {
         ivMessages.push({ role: "assistant", content: d.reply });
         addMsg("ai", d.reply);
@@ -660,7 +666,7 @@
     $("cmp-result").classList.add("hidden");
     $("cmp-loading").classList.remove("hidden");
     $("btn-cmp").disabled = true;
-    api("/api/compare", { jds: jds, resume: $("cmp-resume").value.trim() })
+    api("/api/compare", { jds: jds, resume: $("cmp-resume").value.trim(), uid: getUid() })
       .then(renderCompare)
       .catch(function (e) { setError("cmp-error", e.message || "对比失败，请稍后重试"); })
       .finally(function () {
@@ -720,7 +726,7 @@
     $("opt-result").classList.add("hidden");
     $("opt-loading").classList.remove("hidden");
     $("btn-opt").disabled = true;
-    api("/api/optimize_resume", { resume: resume, direction: $("opt-direction").value.trim() })
+    api("/api/optimize_resume", { resume: resume, direction: $("opt-direction").value.trim(), uid: getUid() })
       .then(renderOptimize)
       .catch(function (e) { setError("opt-error", e.message || "优化失败，请稍后重试"); })
       .finally(function () {
@@ -732,6 +738,11 @@
   function renderOptimize(d) {
     var el = $("opt-result");
     var html = '<div class="card">';
+
+    if (d.style_learned) {
+      html += '<div style="background:#E3F2E9;border:1px solid #BFE3CD;border-radius:10px;padding:10px 13px;font-size:13px;color:#1F6B3D;line-height:1.6;margin-bottom:4px;">'
+        + '已自动学习你的简历文风（仅首次提交触发）：之后的 JD 分析、模拟面试、对比、优化都会保持你的风格。可在「⑤ 文风」查看或清除。</div>';
+    }
 
     html += '<div class="sect-title">优化后的简历</div>'
       + '<div class="summary-text" style="white-space:pre-wrap;background:#F6F9FB;border:1px solid #E5E9F0;border-radius:10px;padding:12px 14px;font-size:13.5px;line-height:1.75;">'
@@ -756,14 +767,15 @@
     });
   }
 
-  // ================= Tab 5: 文风 =================
+  // ================= Tab 5: 个人文风（自动学习） =================
   function refreshStyleUi() {
-    fetch("/api/style")
+    $("my-uid").textContent = getUid();
+    fetch("/api/style?uid=" + encodeURIComponent(getUid()))
       .then(function (res) { return res.json(); })
       .then(function (d) {
         $("style-text").value = d.style_text || "";
         var st = $("style-status");
-        if (d.enabled) { st.textContent = "已启用"; st.style.background = "#E3F2E9"; st.style.color = "#2E9E5B"; }
+        if (d.enabled) { st.textContent = "文风已启用"; st.style.background = "#E3F2E9"; st.style.color = "#2E9E5B"; }
         else { st.textContent = "未启用"; st.style.background = "#EDF1F6"; st.style.color = "#6B7280"; }
       })
       .catch(function () {
@@ -772,49 +784,26 @@
       });
   }
 
-  $("btn-style-learn").addEventListener("click", function () {
-    var sample = $("style-sample").value.trim();
-    if (sample.length < 30) { setError("style-learn-error", "样本太短，请贴至少 30 个字"); return; }
-    setError("style-learn-error", "");
-    $("style-learn-result").classList.add("hidden");
-    $("style-learn-loading").classList.remove("hidden");
-    $("btn-style-learn").disabled = true;
-    api("/api/style/learn", { sample: sample })
-      .then(function (d) {
-        $("style-text").value = d.style_text || "";
-        var html = '<div class="sect"><div class="sect-title">文风分析结果</div>'
-          + '<div class="summary-text" style="font-size:13.5px;line-height:1.75;">' + esc(d.summary || "") + '</div></div>'
-          + '<div class="btn-row"><button class="btn ghost small" id="btn-style-preview">用示例 JD 感受一下</button></div>';
-        $("style-learn-result").innerHTML = html;
-        $("style-learn-result").classList.remove("hidden");
-        $("btn-style-preview").addEventListener("click", function () {
-          document.querySelector('.tab[data-tab="analyze"]').click();
-          $("jd-input").value = SAMPLE_JD;
-          $("btn-analyze").click();
-        });
-        refreshStyleUi();
-        toast("文风已学习并生效");
-      })
-      .catch(function (e) { setError("style-learn-error", e.message || "学习失败，请重试"); })
-      .finally(function () {
-        $("style-learn-loading").classList.add("hidden");
-        $("btn-style-learn").disabled = false;
-      });
-  });
-
   $("btn-style-save").addEventListener("click", function () {
     var t = $("style-text").value.trim();
     if (!t) { toast("文风指令不能为空"); return; }
-    api("/api/style/save", { style_text: t })
+    api("/api/style/save", { uid: getUid(), style_text: t })
       .then(function () { toast("文风已保存"); refreshStyleUi(); })
       .catch(function (e) { toast("保存失败：" + (e.message || "未知错误")); });
   });
 
   $("btn-style-clear").addEventListener("click", function () {
-    if (!confirm("确定清除当前文风吗？清除后所有输出恢复默认风格。")) return;
-    api("/api/style/clear", {})
+    if (!confirm("确定清除当前账号的文风吗？清除后所有输出恢复默认风格。")) return;
+    api("/api/style/clear", { uid: getUid() })
       .then(function () { $("style-text").value = ""; toast("文风已清除"); refreshStyleUi(); })
       .catch(function (e) { toast("清除失败：" + (e.message || "未知错误")); });
+  });
+
+  $("btn-uid-reset").addEventListener("click", function () {
+    if (!confirm("重新生成账号后，本浏览器之前的文风将不再关联。确定继续？")) return;
+    localStorage.removeItem("offercoach_uid");
+    refreshStyleUi();
+    toast("已生成新账号");
   });
 
   refreshStyleUi();

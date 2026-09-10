@@ -1,8 +1,8 @@
 # 密钥与环境变量——绝不能提交到 GitHub
 .env
 
-# 运行时用户数据
-style_profile.json
+# 运行时用户数据（按账号的文风）
+style_profile*.json
 
 # Python
 __pycache__/

@@ -102,20 +102,37 @@ def main():
     print("changes 条数:", len(o.get("changes") or []))
     print("tips 条数:", len(o.get("tips") or []))
 
-    print("\n== 8. 文风学习 → 注入 → 清除 ==")
-    post("/api/style/clear", {})
-    s0 = get_json("/api/style")
-    print("初始 enabled:", s0.get("enabled"))
-    learn = post("/api/style/learn", {"sample": "咱就说，找工作这事别慌。JD 看不懂？拆开看。先看硬性要求，再看加分项，一条条对，不整虚的。语气要接地气、带点俏皮，多用短句。"})
-    st = learn.get("style_text") or ""
-    print("学习到文风指令长度:", len(st))
-    s1 = get_json("/api/style")
-    print("保存后 enabled:", s1.get("enabled"))
-    d3 = post("/api/analyze", {"jd": SAMPLE_JD, "resume": ""})
-    print("文风下 analyze summary:", (d3.get("summary") or "")[:70].replace("\n", " "))
-    post("/api/style/clear", {})
-    s2 = get_json("/api/style")
-    print("清除后 enabled:", s2.get("enabled"))
+    print("\n== 8. 按账号自动学习文风（差异化验证）==")
+    uid_a = "testuser_a"
+    uid_b = "testuser_b"
+    post("/api/style/clear", {"uid": uid_a})
+    post("/api/style/clear", {"uid": uid_b})
+    print("A 初始 enabled:", get_json("/api/style?uid=" + uid_a).get("enabled"))
+    print("B 初始 enabled:", get_json("/api/style?uid=" + uid_b).get("enabled"))
+
+    o1 = post("/api/optimize_resume", {
+        "resume": "白洳丞\n求职意向：AI 应用开发工程师\n技能：Python、FastAPI、大模型 API 调用、微信小程序上线经验\n项目：开发过 AI 求职助手，支持 JD 分析与模拟面试，已部署上线。",
+        "direction": "突出上线作品与量化成果",
+        "uid": uid_a,
+    })
+    print("A 首次优化 style_learned:", o1.get("style_learned"))
+    print("A 学习到的文风:", (o1.get("style_text") or "")[:40].replace("\n", " "))
+
+    o2 = post("/api/optimize_resume", {
+        "resume": "白洳丞\n求职意向：AI 应用开发工程师\n技能：Python、FastAPI、大模型 API 调用、微信小程序上线经验\n项目：开发过 AI 求职助手，支持 JD 分析与模拟面试，已部署上线。",
+        "direction": "再优化一次",
+        "uid": uid_a,
+    })
+    print("A 第二次优化 style_learned（应为 False，不重复学习）:", o2.get("style_learned"))
+
+    d_a = post("/api/analyze", {"jd": SAMPLE_JD, "resume": "", "uid": uid_a})
+    print("A 文风下 analyze summary:", (d_a.get("summary") or "")[:60].replace("\n", " "))
+
+    d_b = post("/api/analyze", {"jd": SAMPLE_JD, "resume": "", "uid": uid_b})
+    print("B（未学习）analyze summary:", (d_b.get("summary") or "")[:60].replace("\n", " "))
+
+    post("/api/style/clear", {"uid": uid_a})
+    print("A 清除后 enabled:", get_json("/api/style?uid=" + uid_a).get("enabled"))
 
     print("\n全部通过 ✅")
 
