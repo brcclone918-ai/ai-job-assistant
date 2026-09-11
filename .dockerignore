@@ -1,0 +1,9 @@
+.venv
+.git
+.env
+users.db
+style_profiles.json
+__pycache__
+*.pyc
+*.png
+docs
